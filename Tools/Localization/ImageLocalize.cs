@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(Image))]
@@ -15,7 +15,7 @@ namespace LegendaryTools
         public override void OnLocalize()
         {
             if (image == null) image = GetComponent<Image>();
-            string path = LocalizationManager.Get(key);
+            string path = Localization.Get(key);
 
             //If we still don't have a key, leave the value as blank
             if (!string.IsNullOrEmpty(key) && image != null && !string.IsNullOrEmpty(path))

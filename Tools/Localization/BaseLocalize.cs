@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     public abstract class BaseLocalize : MonoBehaviour
     {

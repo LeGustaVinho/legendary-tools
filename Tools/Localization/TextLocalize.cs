@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(Text))]
@@ -20,7 +20,7 @@ namespace LegendaryTools
             }
 
             // If we still don't have a key, leave the value as blank
-            if (!string.IsNullOrEmpty(key)) value = LocalizationManager.Get(key);
+            if (!string.IsNullOrEmpty(key)) value = Localization.Get(key);
         }
     }
 }
