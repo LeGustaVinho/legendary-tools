@@ -3,14 +3,14 @@ using System.Collections;
 using System.Reflection;
 using UnityEditor;
 
-namespace Legendary.Thor.Util
+namespace Legendary.Editor.Thor
 {
     public class ThorUtil
     {
-        public static readonly char MEMBER_DELIMITER = '.';
-        public static readonly string ARRAY_START_DELIMITER = "[";
-        public static readonly string ARRAY_END_DELIMITER = "]";
-        public static readonly string UNITY_ARRAY_DELIMITER = ".Array.data[";
+        private static readonly char MEMBER_DELIMITER = '.';
+        private static readonly string ARRAY_START_DELIMITER = "[";
+        private static readonly string ARRAY_END_DELIMITER = "]";
+        private static readonly string UNITY_ARRAY_DELIMITER = ".Array.data[";
 
         public static object GetInstance(SerializedProperty property)
         {
@@ -41,7 +41,7 @@ namespace Legendary.Thor.Util
             return instance;
         }
 
-        public static object GetValue(object instance, string name)
+        private static object GetValue(object instance, string name)
         {
             if (instance == null)
                 return null;
@@ -62,7 +62,7 @@ namespace Legendary.Thor.Util
             return fieldInfo.GetValue(instance);
         }
 
-        public static object GetValue(object source, string name, int index)
+        private static object GetValue(object source, string name, int index)
         {
             object instance = null;
             IEnumerable arrayEnumerable = GetValue(source, name) as IEnumerable;

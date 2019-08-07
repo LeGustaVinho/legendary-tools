@@ -12,12 +12,12 @@ namespace LegendaryTools
             void Init(TData item);
         }
 
-		public bool AutoDestroyAllBefereAdd = true;
+		public bool AutoDestroyAllBeforeAdd = true;
         public TGameObject Prefab;
         public Transform Parent;
         public List<TGameObject> Listing = new List<TGameObject>();
 
-        public Func<List<TData>> DataProvider = null;
+        public readonly Func<List<TData>> DataProvider = null;
 
         public GameObjectListing()
         {
@@ -26,20 +26,17 @@ namespace LegendaryTools
 
         public GameObjectListing(Func<List<TData>> dataProvider)
         {
-            this.DataProvider = dataProvider;
+            DataProvider = dataProvider;
         }
 
         public virtual List<TGameObject> Generate()
         {
-            if (DataProvider != null)
-                return GenerateList(DataProvider.Invoke());
-            else
-                return null;
+            return DataProvider != null ? GenerateList(DataProvider.Invoke()) : null;
         }
 
         public virtual List<TGameObject> GenerateList(List<TData> itens)
         {
-			if (AutoDestroyAllBefereAdd)
+			if (AutoDestroyAllBeforeAdd)
                 DestroyAll();
 			
             for (int i = 0; i < itens.Count; i++)

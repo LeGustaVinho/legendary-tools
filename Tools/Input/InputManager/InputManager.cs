@@ -1,9 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using LegendaryTools.DesignPatters;
 
 namespace LegendaryTools.Input
 {
+    [Serializable]
+    public class StringKeyBindingPair
+    {
+        public string KeyName;
+        public KeyBinding Binding;
+    }
+    
     public class InputManager : SingletonBehaviour<InputManager>
     {
         public delegate void OnMouseInputEventHandler(MouseButton mouseCode, MouseEvent eventType);
@@ -12,7 +20,8 @@ namespace LegendaryTools.Input
         public bool CanInput = true;
         public float mouseClickThreshold = 5;
 
-        public Dictionary<string, KeyBinding> KeyBindings = new Dictionary<string, KeyBinding>();
+        public List<StringKeyBindingPair> KeyBindings =new List<StringKeyBindingPair>();
+        private readonly Dictionary<string, KeyBinding> keyBindings = new Dictionary<string, KeyBinding>();
 
         private readonly Vector2[] lastPressedMousePosition = new Vector2[3];
 
@@ -22,6 +31,11 @@ namespace LegendaryTools.Input
         {
             base.Awake();
 
+            for (int i = 0; i < KeyBindings.Count; i++)
+            {
+                keyBindings.Add(KeyBindings[i].KeyName, KeyBindings[i].Binding);
+            }
+            
             IsInitialized = true;
         }
 
@@ -57,7 +71,7 @@ namespace LegendaryTools.Input
 
             #region Inputs axis calcs
 
-            foreach (KeyValuePair<string, KeyBinding> keyBinding in KeyBindings)
+            foreach (KeyValuePair<string, KeyBinding> keyBinding in keyBindings)
             {
                 if (UnityEngine.Input.GetKey(keyBinding.Value.PositiveKey) || UnityEngine.Input.GetKey(keyBinding.Value.AltPositiveKey))
                     keyBinding.Value.RaiseValue();
@@ -72,14 +86,14 @@ namespace LegendaryTools.Input
 
         private void LateUpdate()
         {
-            foreach (KeyValuePair<string, KeyBinding> keyBinding in KeyBindings)
+            foreach (KeyValuePair<string, KeyBinding> keyBinding in keyBindings)
                 keyBinding.Value.ResetFrameKeys();
         }
 
         public float GetAxis(string keyBindingName)
         {
-            if (KeyBindings.ContainsKey(keyBindingName))
-                return KeyBindings[keyBindingName].Value;
+            if (keyBindings.ContainsKey(keyBindingName))
+                return keyBindings[keyBindingName].Value;
             else
             {
                 Debug.LogError("KeyBinding name " + keyBindingName + " not found !");
@@ -89,8 +103,8 @@ namespace LegendaryTools.Input
 
         public KeyBinding GetKeyBinding(string keyBindingName)
         {
-            if (KeyBindings.ContainsKey(keyBindingName))
-                return KeyBindings[keyBindingName];
+            if (keyBindings.ContainsKey(keyBindingName))
+                return keyBindings[keyBindingName];
             else
             {
                 Debug.LogError("KeyBinding name " + keyBindingName + " not found !");
@@ -100,8 +114,8 @@ namespace LegendaryTools.Input
 
         public bool GetButton(string keyBindingName)
         {
-            if (KeyBindings.ContainsKey(keyBindingName))
-                return KeyBindings[keyBindingName].Value > 0 ? true : false;
+            if (keyBindings.ContainsKey(keyBindingName))
+                return keyBindings[keyBindingName].Value > 0 ? true : false;
             else
             {
                 Debug.LogError("KeyBinding name " + keyBindingName + " not found !");
@@ -111,8 +125,8 @@ namespace LegendaryTools.Input
 
         public bool GetButtonUp(string keyBindingName)
         {
-            if (KeyBindings.ContainsKey(keyBindingName))
-                return KeyBindings[keyBindingName].FrameKeyUp;
+            if (keyBindings.ContainsKey(keyBindingName))
+                return keyBindings[keyBindingName].FrameKeyUp;
             else
             {
                 Debug.LogError("KeyBinding name " + keyBindingName + " not found !");
@@ -122,8 +136,8 @@ namespace LegendaryTools.Input
 
         public bool GetButtonDown(string keyBindingName)
         {
-            if (KeyBindings.ContainsKey(keyBindingName))
-                return KeyBindings[keyBindingName].FrameKeyDown;
+            if (keyBindings.ContainsKey(keyBindingName))
+                return keyBindings[keyBindingName].FrameKeyDown;
             else
             {
                 Debug.LogError("KeyBinding name " + keyBindingName + " not found !");

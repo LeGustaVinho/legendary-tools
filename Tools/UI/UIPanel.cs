@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using System.Collections.Generic;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(CanvasGroup))]
@@ -17,38 +17,13 @@ namespace LegendaryTools
         public bool blocksRaycasts = true;
         public bool ignoreParentGroups;
         public bool interactable = true;
-        public List<Selectable> allSelectable = new List<Selectable>();
-
-        public bool AutoDisableSelectable
-        {
-            get { return autoDisableSelectable; }
-            set
-            {
-                autoDisableSelectable = value;
-                UpdateSelectableList();
-                checkSelectable();
-            }
-        }
-        private bool autoDisableSelectable = true;
+        public bool autoDisableSelectable;
 
         public event OnPanelAlphaChangeEventHandler OnPanelAlphaChange;
 
         protected virtual void Awake()
         {
             Init();
-        }
-
-        void Init()
-        {
-            CanvasGroup = GetComponent<CanvasGroup>();
-            if (CanvasGroup != null) canvasAlpha = CanvasGroup.alpha;
-
-            allSelectable.Clear();
-            allSelectable.AddRange(GetComponentsInChildren<Selectable>());
-
-            UpdateSelectableList();
-
-            checkSelectable();
         }
 
         protected virtual void Update()
@@ -61,40 +36,41 @@ namespace LegendaryTools
                     CanvasGroup.interactable = CanvasGroup.alpha > 0 && interactable;
                     CanvasGroup.ignoreParentGroups = ignoreParentGroups;
 
-                    checkSelectable();
+                    if (autoDisableSelectable && CanvasGroup.alpha == 0)
+                    {
+                        SetAllSelectable(false);
+                    }
+                    else if (CanvasGroup.alpha > 0 && canvasAlpha == 0)
+                    {
+                        SetAllSelectable(true);
+                    }
 
-                    if (OnPanelAlphaChange != null)
-                        OnPanelAlphaChange.Invoke(canvasAlpha, CanvasGroup.alpha);
+                    OnPanelAlphaChange?.Invoke(canvasAlpha, CanvasGroup.alpha);
 
                     canvasAlpha = CanvasGroup.alpha;
                 }
             }
         }
-
-        public void SetAllSelectable(bool mode)
-        {
-            for (int i = 0; i < allSelectable.Count; i++)
-            {
-                if(allSelectable[i] != null)
-                    allSelectable[i].enabled = mode;
-            }
-        }
-
-        public void UpdateSelectableList()
-        {
-            allSelectable.Clear();
-            allSelectable.AddRange(GetComponentsInChildren<Selectable>());
-        }
-
+        
         protected virtual void Reset()
         {
             Init();
         }
 
-        private void checkSelectable()
+        private void Init()
         {
-            if (AutoDisableSelectable)
-                SetAllSelectable(CanvasGroup.alpha > 0);
+            CanvasGroup = GetComponent<CanvasGroup>();
+            if (CanvasGroup != null) canvasAlpha = CanvasGroup.alpha;
+        }
+        
+        public void SetAllSelectable(bool mode)
+        {
+            Selectable[] allSelectable = GetComponentsInChildren<Selectable>();
+            for (int i = 0; i < allSelectable.Length; i++)
+            {
+                if(allSelectable[i] != null)
+                    allSelectable[i].enabled = mode;
+            }
         }
     }
 }

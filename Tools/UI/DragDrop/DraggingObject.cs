@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     [System.Serializable]
     public class DraggingObject

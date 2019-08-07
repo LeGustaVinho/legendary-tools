@@ -1,9 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
-using System.Collections;
 using UnityEngine.EventSystems;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     [System.Serializable]
     public class OnDropFinishUnityEvent : UnityEvent<UIDrag>
@@ -57,7 +56,7 @@ namespace LegendaryTools
             //UIDrag.Dragging[eventData.pointerId] = null;
         }
 
-        public virtual void OnDropFinish(UIDrag draggedObject)
+        protected virtual void OnDropFinish(UIDrag draggedObject)
         {
 
         }
@@ -95,11 +94,9 @@ namespace LegendaryTools
 
                 return true;
             }
-            else
-            {
-                Debug.Log("Refused by cursor location.");
-                return false;
-            }
+
+            Debug.Log("Refused by cursor location.");
+            return false;
         }
 
         public void DestroyItemStored()

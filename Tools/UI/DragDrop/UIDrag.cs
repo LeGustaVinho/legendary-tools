@@ -1,11 +1,8 @@
 ﻿using UnityEngine;
-using System.Collections;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
-using UnityEngine.UI;
-using UnityEngine.Events;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     public class UIDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
@@ -44,26 +41,9 @@ namespace LegendaryTools
         public CanvasGroup CanvasGroup;
 
         public List<UIDrop> hovered = new List<UIDrop>();
-        List<RaycastResult> hoveredRaycastResults = new List<RaycastResult>();
+        private readonly List<RaycastResult> hoveredRaycastResults = new List<RaycastResult>();
 
-        public static Dictionary<int, DraggingObject> Dragging = new Dictionary<int, DraggingObject>();
-
-        public void Init()
-        {
-            if (!IsInit)
-            {
-                CanvasGroup = GetComponent<CanvasGroup>();
-                if (CanvasGroup == null) CanvasGroup = gameObject.AddComponent<CanvasGroup>();
-
-                RectTransform = GetComponent<RectTransform>();
-
-                Canvas = GetComponentInParent<Canvas>();
-                if (Canvas == null) return;
-
-                Cache();
-                IsInit = true;
-            }
-        }
+        public static readonly Dictionary<int, DraggingObject> Dragging = new Dictionary<int, DraggingObject>();
 
         public virtual void OnDestroy()
         {
@@ -81,69 +61,23 @@ namespace LegendaryTools
             }
         }
 
-        void Cache()
+        public void SnapTo(UIDrop slot, bool ensureRotation = false)
         {
-            startPosition = transform.position;
-            startRotation = transform.localRotation;
-            startParent = transform.parent;
+            Init();
 
-            anchoredPosition3D = RectTransform.anchoredPosition3D;
-            anchorMin = RectTransform.anchorMin;
-            anchorMax = RectTransform.anchorMax;
-            pivot = RectTransform.pivot;
-            sizeDelta = RectTransform.sizeDelta;
+            if (slot.ParentWithContainer) transform.SetParent(slot.transform);
+            if (slot.RestoreAnchorAndPivot) RestoreAnchorPivot();
+            if (slot.SnapAnchoring) RectTransform.anchoredPosition3D = (slot.transform as RectTransform).anchoredPosition3D;
+            if (slot.SnapTransformPosition) transform.position = slot.transform.position;
+            if (ensureRotation) transform.rotation = slot.transform.rotation;
         }
-
-        //restore anchor, pivot and size
-        public void RestoreAnchorPivot()
-        {
-            RectTransform.anchorMin = anchorMin;
-            RectTransform.anchorMax = anchorMax;
-            RectTransform.pivot = pivot;
-            RectTransform.sizeDelta = sizeDelta;
-        }
-
-        //move anrchor and pivot to center e keep width and height
-        public void AnchorAndPivotCenter()
-        {
-            Vector2 newSize = new Vector2(RectTransform.rect.width, RectTransform.rect.height);
-            RectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            RectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            RectTransform.pivot = new Vector2(0.5f, 0.5f);
-            RectTransform.sizeDelta = newSize;
-        }
-
-        //restore all (anchor, pivot, anchorPosition)
-        public void RestoreAll(bool hasAnimation = false)
-        {
-            RestoreAnchorPivot();
-            transform.SetParent(startParent);
-
-            if (!hasAnimation)
-            {
-                if (UseTransformPosition)
-                {
-                    transform.position = startPosition;
-                    transform.localRotation = startRotation;
-                }
-                else
-                    RectTransform.anchoredPosition3D = anchoredPosition3D; //use anchoredPosition or TransformPosition?
-            }
-            else
-            {
-                if (UseTransformPosition)
-                    OnReturnToStart(startPosition, startRotation, transform.position, transform.rotation);
-                else
-                    OnReturnToStart(anchoredPosition3D, startRotation, RectTransform.anchoredPosition3D, transform.rotation);
-            }
-        }
-
+        
         public void OnBeginDrag(PointerEventData eventData)
         {
             Init();
             if (IsInit)
             {
-                Cache();
+                cache();
 
                 if (DragPrefab) //will clone object
                 {
@@ -168,7 +102,7 @@ namespace LegendaryTools
                 else
                     Dragging[eventData.pointerId].Plane = Canvas.transform as RectTransform;
 
-                SetDraggedPosition(eventData);
+                setDraggedPosition(eventData);
                 OnDragStart(eventData);
             }
         }
@@ -178,9 +112,9 @@ namespace LegendaryTools
             Init();
 
             if (Dragging[eventData.pointerId] != null)
-                SetDraggedPosition(eventData);
+                setDraggedPosition(eventData);
 
-            CheckHover(eventData);
+            checkHover(eventData);
 
             OnDragUpdate(eventData);
         }
@@ -221,13 +155,17 @@ namespace LegendaryTools
                         }
                         else
                         {
-                            originContainer.Stored = null;
+                            if (originContainer != null)
+                                originContainer.Stored = null;
+                            
                             this.CurrentContainer = null;
                         }
                     }
                     else
                     {
-                        originContainer.Stored = null; //remove reference from container
+                        if (originContainer != null)
+                            originContainer.Stored = null; //remove reference from container
+                        
                         this.CurrentContainer = null;
                     }
 
@@ -259,7 +197,7 @@ namespace LegendaryTools
                 }
             }
 
-            ForceCleanAllHover();
+            forceCleanAllHover();
             CanvasGroup.blocksRaycasts = true;
             OnDragEnd(eventData);
             Dragging[eventData.pointerId].OnEndDrag = true;
@@ -268,33 +206,106 @@ namespace LegendaryTools
                 droppedTarget.OnDrop(eventData);
         }
 
-        public virtual void OnSlotChanged(UIDrop from, UIDrop to)
+        protected void Init()
+        {
+            if (IsInit) return;
+            
+            CanvasGroup = GetComponent<CanvasGroup>();
+            if (CanvasGroup == null) CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+            RectTransform = GetComponent<RectTransform>();
+
+            Canvas = GetComponentInParent<Canvas>();
+            if (Canvas == null) return;
+
+            cache();
+            IsInit = true;
+        }
+        
+        protected void cache()
+        {
+            startPosition = transform.position;
+            startRotation = transform.localRotation;
+            startParent = transform.parent;
+
+            anchoredPosition3D = RectTransform.anchoredPosition3D;
+            anchorMin = RectTransform.anchorMin;
+            anchorMax = RectTransform.anchorMax;
+            pivot = RectTransform.pivot;
+            sizeDelta = RectTransform.sizeDelta;
+        }
+
+        //restore anchor, pivot and size
+        protected void RestoreAnchorPivot()
+        {
+            RectTransform.anchorMin = anchorMin;
+            RectTransform.anchorMax = anchorMax;
+            RectTransform.pivot = pivot;
+            RectTransform.sizeDelta = sizeDelta;
+        }
+
+        //move anrchor and pivot to center e keep width and height
+        protected void AnchorAndPivotCenter()
+        {
+            Vector2 newSize = new Vector2(RectTransform.rect.width, RectTransform.rect.height);
+            RectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            RectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            RectTransform.pivot = new Vector2(0.5f, 0.5f);
+            RectTransform.sizeDelta = newSize;
+        }
+        
+        //restore all (anchor, pivot, anchorPosition)
+        protected void RestoreAll(bool hasAnimation = false)
+        {
+            RestoreAnchorPivot();
+            transform.SetParent(startParent);
+
+            if (!hasAnimation)
+            {
+                if (UseTransformPosition)
+                {
+                    transform.position = startPosition;
+                    transform.localRotation = startRotation;
+                }
+                else
+                    RectTransform.anchoredPosition3D = anchoredPosition3D; //use anchoredPosition or TransformPosition?
+            }
+            else
+            {
+                if (UseTransformPosition)
+                    OnReturnToStart(startPosition, startRotation, transform.position, transform.rotation);
+                else
+                    OnReturnToStart(anchoredPosition3D, startRotation, RectTransform.anchoredPosition3D, transform.rotation);
+            }
+        }
+        
+        protected virtual void OnSlotChanged(UIDrop from, UIDrop to)
         {
 
         }
 
         //override this to do returned animation
-        public virtual void OnReturnToStart(Vector3 startPos, Quaternion startRot, Vector3 endPos, Quaternion endRotation)
+        protected virtual void OnReturnToStart(Vector3 startPos, Quaternion startRot, Vector3 endPos, Quaternion endRotation)
         {
 
         }
 
-        public virtual void OnDragUpdate(PointerEventData eventData)
+        protected virtual void OnDragUpdate(PointerEventData eventData)
         {
 
         }
 
-        public virtual void OnDragStart(PointerEventData eventData)
+        protected virtual void OnDragStart(PointerEventData eventData)
         {
 
         }
 
-        public virtual void OnDragEnd(PointerEventData eventData)
+        protected virtual void OnDragEnd(PointerEventData eventData)
         {
 
         }
 
-        private void SetDraggedPosition(PointerEventData eventData)
+        private void setDraggedPosition(PointerEventData eventData)
         {
             if (DragOnSurfaces && eventData.pointerEnter != null && eventData.pointerEnter.transform as RectTransform != null)
                 Dragging[eventData.pointerId].Plane = eventData.pointerEnter.transform as RectTransform;
@@ -307,19 +318,8 @@ namespace LegendaryTools
                 rt.rotation = Dragging[eventData.pointerId].Plane.rotation;
             }
         }
-
-        public void SnapTo(UIDrop slot, bool ensureRotation = false)
-        {
-            Init();
-
-            if (slot.ParentWithContainer) transform.SetParent(slot.transform);
-            if (slot.RestoreAnchorAndPivot) RestoreAnchorPivot();
-            if (slot.SnapAnchoring) RectTransform.anchoredPosition3D = (slot.transform as RectTransform).anchoredPosition3D;
-            if (slot.SnapTransformPosition) transform.position = slot.transform.position;
-            if (ensureRotation) transform.rotation = slot.transform.rotation;
-        }
-
-        void CheckHover(PointerEventData eventData)
+        
+        private void checkHover(PointerEventData eventData)
         {
             hoveredRaycastResults.Clear();
             EventSystem.current.RaycastAll(eventData, hoveredRaycastResults);
@@ -365,7 +365,7 @@ namespace LegendaryTools
             }
         }
 
-        void ForceCleanAllHover()
+        private void forceCleanAllHover()
         {
             //clean not hovered old objects
             for (int i = hovered.Count - 1; i >= 0; i--)

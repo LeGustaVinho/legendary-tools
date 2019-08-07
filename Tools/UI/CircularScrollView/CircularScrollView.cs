@@ -92,7 +92,7 @@ namespace LegendaryTools.UI
 
         private Vector3 center;
         private ScrollViewItem closestChild;
-        private List<ScrollViewItem> contentChilds = new List<ScrollViewItem>();
+        private readonly List<ScrollViewItem> contentChilds = new List<ScrollViewItem>();
 
         private Vector2 speed = Vector2.zero;
         private Vector2 pointerStartLocalCursor = Vector2.zero;
@@ -102,7 +102,7 @@ namespace LegendaryTools.UI
         private RectTransform thisRectTransform;
 
         private Rect rect = new Rect();
-        private Vector3[] corners = new Vector3[4];
+        private readonly Vector3[] corners = new Vector3[4];
         private int childCount = 0;
 
         private Vector3 alignBuffer;
@@ -187,20 +187,20 @@ namespace LegendaryTools.UI
             }
         }
 
-        void Awake()
+        protected virtual void Awake()
         {
             thisTransform = transform;
             thisRectTransform = thisTransform as RectTransform;
         }
 
-        void Start()
+        protected virtual void Start()
         {
             UpdateCache();
 
             Reposition();
         }
 
-        void Update()
+        protected virtual void Update()
         {
             UpdateCache();
 
@@ -249,7 +249,7 @@ namespace LegendaryTools.UI
             }
         }
 
-        Vector3 CalcAlignment(float width, float height)
+        private Vector3 CalcAlignment(float width, float height)
         {
             width = width * 0.5f;
             height = height * 0.5f;
@@ -327,7 +327,7 @@ namespace LegendaryTools.UI
             return null;
         }
 
-        void onChange(GameObject newSelected, GameObject oldSelected)
+        private void onChange(GameObject newSelected, GameObject oldSelected)
         {
             if (SnapAtCenter)
             {
@@ -340,12 +340,12 @@ namespace LegendaryTools.UI
             }
         }
 
-        public virtual void OnChangeSelected(GameObject newSelected, GameObject oldSelected)
+        protected virtual void OnChangeSelected(GameObject newSelected, GameObject oldSelected)
         {
 
         }
 
-        void MoveAllInvisibleTo(bool toStart)
+        private void MoveAllInvisibleTo(bool toStart)
         {
             if (contentChilds.TrueForAll(item => item.IsVisible == false))
                 return;
@@ -389,7 +389,7 @@ namespace LegendaryTools.UI
             }
         }
 
-        public void UpdateCache()
+        private void UpdateCache()
         {
             if (thisRectTransform != null)
             {
@@ -415,7 +415,7 @@ namespace LegendaryTools.UI
             }
         }
 
-        void Reset()
+        protected void Reset()
         {
             Awake();
             Start();

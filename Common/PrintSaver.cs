@@ -7,20 +7,22 @@ namespace LegendaryTools
     public class PrintSaver : MonoBehaviour
     {
 #if UNITY_EDITOR
+        private static readonly string IMAGE_FORMAT = ".png";
+        
+        public KeyCode PrintKey = KeyCode.F12;
+        
         // Use this for initialization
-        void Start()
+        private void Start()
         {
             DontDestroyOnLoad(this);
         }
 
         // Update is called once per frame
-        void Update()
+        private void Update()
         {
-
-            if (UnityEngine.Input.GetKeyUp(KeyCode.F12))
+            if (UnityEngine.Input.GetKeyUp(PrintKey))
             {
-                ScreenCapture.CaptureScreenshot(GenerateUID() + ".png");
-                Debug.Log("Print!");
+                ScreenCapture.CaptureScreenshot(GenerateUID() + IMAGE_FORMAT);
             }
         }
 
