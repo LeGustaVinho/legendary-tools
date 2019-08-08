@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEditor;
-using System.Collections.Generic;
 using LegendaryTools.Inspector;
 using LegendaryTools.UI;
 
@@ -62,7 +61,7 @@ namespace LegendaryTools.Editor
                         if (GUILayout.Button(pair.Value[currentKey], "TextArea", GUILayout.MinWidth(80f),
                             GUILayout.MaxWidth(Screen.width - 110f)))
                         {
-                            (target as BaseLocalize).value = pair.Value[currentKey];
+                            (target as BaseLocalize).Localize(pair.Value[currentKey]);
                             GUIUtility.hotControl = 0;
                             GUIUtility.keyboardControl = 0;
                         }

@@ -8,8 +8,6 @@ namespace LegendaryTools.Inspector
 {
     public static class ActionDelegateEditor
     {
-        ////////////////////////////////////////////////////////////
-
         /// <summary>
         /// Collect a list of usable delegates from the specified target game object.
         /// </summary>

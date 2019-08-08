@@ -3,24 +3,33 @@ using UnityEngine.UI;
 
 namespace LegendaryTools.UI
 {
-    [ExecuteInEditMode]
     [RequireComponent(typeof(Text))]
     [AddComponentMenu("UI/Localize Text")]
     public class TextLocalize : BaseLocalize
     {
-        private Text text;
+        private Text Text;
 
-        public override void OnLocalize()
+        protected override void Start()
         {
-            // If no localization key has been specified, use the label's text as the key
-            if (string.IsNullOrEmpty(key))
-            {
-                if(text == null) text = GetComponent<Text>();
-                if (text != null) key = text.text;
-            }
+            base.Start();
 
-            // If we still don't have a key, leave the value as blank
-            if (!string.IsNullOrEmpty(key)) value = Localization.Get(key);
+            Localize(Localization.Get(key));
+        }
+
+        public override void Localize(string value)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            
+            if (Text == null)
+                Text = GetComponent<Text>();
+
+            if (Text == null) return;
+            Text.text = value;
+                    
+#if UNITY_EDITOR
+            if(!Application.isPlaying)
+                UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
     }
 }

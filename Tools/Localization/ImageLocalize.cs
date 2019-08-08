@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,24 +9,51 @@ namespace LegendaryTools.UI
     [AddComponentMenu("UI/Localize Image")]
     public class ImageLocalize : BaseLocalize
     {
-        public Image image;
-
-        public override void OnLocalize()
+        public Image Image;
+        private Coroutine loadTextureRoutine;
+        
+        protected override void Start()
         {
-            if (image == null) image = GetComponent<Image>();
-            string path = Localization.Get(key);
+            base.Start();
 
-            //If we still don't have a key, leave the value as blank
-            if (!string.IsNullOrEmpty(key) && image != null && !string.IsNullOrEmpty(path))
-                StartCoroutine(LoadTexture(path));
+            Localize(Localization.Get(key));
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (loadTextureRoutine != null)
+            {
+                StopCoroutine(loadTextureRoutine);
+                loadTextureRoutine = null;
+            }
+        }
+
+        public override void Localize(string value)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            if (Image == null)
+                Image = GetComponent<Image>();
+
+            if (Image == null) return;
+            
+            if (!string.IsNullOrEmpty(value))
+                loadTextureRoutine = StartCoroutine(LoadTexture(value));
         }
 
         IEnumerator LoadTexture(string path)
         {
             ResourceRequest request = Resources.LoadAsync<Sprite>(path);
             yield return request;
-            Image lbl = GetComponent<Image>();
-            lbl.sprite = request.asset as Sprite;
+
+            if (request.asset == null) yield break;
+            Image.sprite = request.asset as Sprite;
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
     }
 }
