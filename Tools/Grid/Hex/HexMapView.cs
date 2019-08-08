@@ -1,96 +1,100 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class HexMapView : MonoBehaviour, IAStar<Hex>
+namespace LegendaryTools.Tools.HexGrid
 {
-    [System.Serializable]
-    public struct WorldHexLine
+    public class HexMapView : MonoBehaviour, IAStar<Hex>
     {
-        public Transform PointA;
-        public Transform PointB;
-    }
-    
-    public HexMap HexMap;
-
-    public AStar<Hex> Pathfinding;
-    public WorldHexLine[] LineWalls;
-    public WorldHexLine AgentStartEnd;
-    
-    private HashSet<Hex> Walls = new HashSet<Hex>();
-    private HashSet<Hex> Path = new HashSet<Hex>();
-    private List<Hex> neighborsBuffer = new List<Hex>();
-    
-    // Update is called once per frame
-    void OnDrawGizmos()
-    {
-        if (HexMap == null)
+        [System.Serializable]
+        public struct WorldHexLine
         {
-            HexMap = new HexMap(Layout.WorldPlane.XY, Layout.Flat, new Vector3(10, 10, 10), Vector3.zero);
-            HexMap.HexagonalShape(10);
-            Pathfinding = new AStar<Hex>(this);
+            public Transform PointA;
+            public Transform PointB;
         }
-        
-        if (LineWalls != null)
+
+        public HexMap HexMap;
+
+        public AStar<Hex> Pathfinding;
+        public WorldHexLine[] LineWalls;
+        public WorldHexLine AgentStartEnd;
+
+        private HashSet<Hex> Walls = new HashSet<Hex>();
+        private HashSet<Hex> Path = new HashSet<Hex>();
+        private List<Hex> neighborsBuffer = new List<Hex>();
+
+        // Update is called once per frame
+        void OnDrawGizmos()
         {
-            Walls.Clear();
-            for (int i = 0; i < LineWalls.Length; i++)
+            if (HexMap == null)
             {
-                if (LineWalls[i].PointA != null && LineWalls[i].PointB != null)
+                HexMap = new HexMap(Layout.WorldPlane.XY, Layout.Flat, new Vector3(10, 10, 10), Vector3.zero);
+                HexMap.HexagonalShape(10);
+                Pathfinding = new AStar<Hex>(this);
+            }
+
+            if (LineWalls != null)
+            {
+                Walls.Clear();
+                for (int i = 0; i < LineWalls.Length; i++)
                 {
-                    foreach (Hex cell in HexMap.Line(HexMap.PixelToHex(LineWalls[i].PointA.position), HexMap.PixelToHex(LineWalls[i].PointB.position)))
+                    if (LineWalls[i].PointA != null && LineWalls[i].PointB != null)
                     {
-                        Walls.Add(cell);
+                        foreach (Hex cell in HexMap.Line(HexMap.PixelToHex(LineWalls[i].PointA.position),
+                            HexMap.PixelToHex(LineWalls[i].PointB.position)))
+                        {
+                            Walls.Add(cell);
+                        }
                     }
                 }
             }
+
+            Path.Clear();
+            if (AgentStartEnd.PointA != null && AgentStartEnd.PointB != null)
+            {
+                foreach (Hex cell in Pathfinding.FindPath(HexMap.PixelToHex(AgentStartEnd.PointA.position),
+                    HexMap.PixelToHex(AgentStartEnd.PointB.position)))
+                {
+                    Path.Add(cell);
+                }
+            }
+
+            foreach (Hex cell in HexMap)
+            {
+                if (Path.Contains(cell))
+                {
+                    Gizmos.color = Color.red;
+                }
+                else if (Walls.Contains(cell))
+                {
+                    Gizmos.color = Color.black;
+                }
+                else
+                {
+                    Gizmos.color = Color.white;
+                }
+
+                HexMap.DrawCell(cell);
+            }
         }
 
-        Path.Clear();
-        if (AgentStartEnd.PointA != null && AgentStartEnd.PointB != null)
+        public Hex[] Neighbors(Hex node)
         {
-            foreach (Hex cell in Pathfinding.FindPath(HexMap.PixelToHex(AgentStartEnd.PointA.position), HexMap.PixelToHex(AgentStartEnd.PointB.position)))
+            neighborsBuffer.Clear();
+
+            foreach (Hex current in HexMap.Neighbors(node))
             {
-                Path.Add(cell);
+                if (!Walls.Contains(current))
+                    neighborsBuffer.Add(current);
             }
+
+            return neighborsBuffer.ToArray();
         }
 
-        foreach(Hex cell in HexMap)
+        public float Heuristic(Hex nodeA, Hex nodeB)
         {
-            if (Path.Contains(cell))
-            {
-                Gizmos.color = Color.red;
-            }
-            else if (Walls.Contains(cell))
-            {
-                Gizmos.color = Color.black;
-            }
-            else
-            {
-                Gizmos.color = Color.white;
-            }
-            
-            HexMap.DrawCell(cell);
+            return 0;
         }
-    }
-    
-    public Hex[] Neighbors(Hex node)
-    {
-        neighborsBuffer.Clear();
 
-        foreach (Hex current in HexMap.Neighbors(node))
-        {
-            if(!Walls.Contains(current))
-                neighborsBuffer.Add(current);
-        }
-        
-        return neighborsBuffer.ToArray();
+        public int MapLocationsAmount => HexMap.Count;
     }
-
-    public float Heuristic(Hex nodeA, Hex nodeB)
-    {
-        return 0;
-    }
-
-    public int MapLocationsAmount => HexMap.Count;
 }
