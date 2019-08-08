@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using LegendaryTools.Pathfinding;
 
-namespace LegendaryTools.Tools.HexGrid
+namespace LegendaryTools.Grid
 {
     public class HexMapView : MonoBehaviour, IAStar<Hex>
     {

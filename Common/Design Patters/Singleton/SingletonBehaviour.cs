@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LegendaryTools.DesignPatters
+namespace LegendaryTools
 {
     /// <summary>
     /// Defines an Instance operation that lets clients access its unique instance. Instance is a class operation.

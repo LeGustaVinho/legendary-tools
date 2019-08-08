@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
 using UnityEngine;
 
-namespace LegendaryTools.EditorTime
+namespace LegendaryTools.Editor
 {
     internal class EndNameEdit : EndNameEditAction
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Legendary.Thor.Util
+namespace LegendaryTools.Inspector.Thor
 {
     public class AssemblyHelper
     {

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using LegendaryTools.Inspector;
+using LegendaryTools.UI;
 
 namespace LegendaryTools
 {

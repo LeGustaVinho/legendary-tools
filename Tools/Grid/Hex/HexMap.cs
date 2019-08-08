@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace LegendaryTools.Tools.HexGrid
+namespace LegendaryTools.Grid
 {
     public class HexMap : ICollection<Hex>
     {

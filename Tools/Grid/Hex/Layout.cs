@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LegendaryTools.Tools.HexGrid
+namespace LegendaryTools.Grid
 {
     public struct Layout
     {

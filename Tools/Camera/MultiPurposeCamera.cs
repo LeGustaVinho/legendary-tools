@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LegendaryTools.Tools
+namespace LegendaryTools.CameraTools
 {
     public enum CameraRotationAxes { MouseXAndY = 0, MouseX = 1, MouseY = 2 }
     public enum CameraMoveHeuristic { Hard = 0, Towards = 1, Lerp = 2, Smooth = 3 }

@@ -1,11 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Legendary.Editor.Thor;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
-namespace LegendaryTools.Editor.Thor
-
+namespace LegendaryTools.Inspector.Thor.Editor
 {
     public class ThorPropertyDrawer<T> : PropertyDrawer
         where T : class

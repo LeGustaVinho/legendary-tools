@@ -3,7 +3,7 @@ using System.Collections;
 using System.Reflection;
 using UnityEditor;
 
-namespace Legendary.Editor.Thor
+namespace LegendaryTools.Inspector.Thor
 {
     public class ThorUtil
     {

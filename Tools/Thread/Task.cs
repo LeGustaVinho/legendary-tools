@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
-namespace LegendaryTools.Threads
+namespace LegendaryTools.Threading
 {
     public enum TaskState
     {

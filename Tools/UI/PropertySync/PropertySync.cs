@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LegendaryTools
+namespace LegendaryTools.UI
 {
     /// <summary>
     /// Property binding lets you bind two fields or properties so that changing one will update the other.

@@ -4,7 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace LegendaryTools.EditorTime
+namespace LegendaryTools.Editor
 {
     /// <summary>
     /// A helper class for instantiating ScriptableObjects in the editor.

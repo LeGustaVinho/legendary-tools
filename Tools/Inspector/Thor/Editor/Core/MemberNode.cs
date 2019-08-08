@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using System;
 using UnityEditor;
 
-namespace Legendary.Thor.Editor
+namespace LegendaryTools.Inspector.Thor.Editor
 {
     public enum MemberNodeType
     {

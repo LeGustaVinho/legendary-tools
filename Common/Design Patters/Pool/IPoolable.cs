@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace LegendaryTools.DesignPatters
+﻿namespace LegendaryTools
 {
     public interface IPoolable
     {

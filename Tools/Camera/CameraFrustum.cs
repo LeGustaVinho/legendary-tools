@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LegendaryTools.Tools
+namespace LegendaryTools.CameraTools
 {
     public class CameraFrustum : MonoBehaviour
     {

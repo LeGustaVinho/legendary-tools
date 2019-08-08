@@ -1,5 +1,5 @@
 ﻿using UnityEditor;
-using LegendaryTools.Tools;
+using LegendaryTools.CameraTools;
 
 namespace LegendaryTools.Editor.Inspector
 {

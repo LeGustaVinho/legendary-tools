@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEditor;
 
-namespace LegendaryTools.EditorTime
+namespace LegendaryTools.Editor
 {
     public class PingObject : MonoBehaviour
     {

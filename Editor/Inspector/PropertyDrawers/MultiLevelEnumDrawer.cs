@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using LegendaryTools.Editor.Attributes;
 using UnityEditor;
 using UnityEngine;
 
-namespace LegendaryTools
+namespace LegendaryTools.Editor
 {
     [CustomPropertyDrawer(typeof(MultiLevelEnumAttribute))]
     public class MultiLevelEnumDrawer : PropertyDrawer

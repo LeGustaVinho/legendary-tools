@@ -1,9 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace LegendaryTools.DesignPatters
+namespace LegendaryTools
 {
     public class PoolObject<T>
     {

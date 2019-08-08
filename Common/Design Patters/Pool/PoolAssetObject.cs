@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace LegendaryTools.DesignPatters
+namespace LegendaryTools
 {
     internal class PoolAssetObject<T> : PoolObject<T> where T : UnityEngine.Object
     {

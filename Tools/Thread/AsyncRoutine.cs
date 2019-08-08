@@ -1,12 +1,8 @@
 using UnityEngine;
-
-using System.Linq;
 using System.Collections;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 
-namespace LegendaryTools.Threads
+namespace LegendaryTools.Threading
 {
     /// <summary>
     /// Running state of a task.

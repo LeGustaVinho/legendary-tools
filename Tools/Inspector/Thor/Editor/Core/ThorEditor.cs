@@ -1,9 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
+﻿using UnityEditor;
 
-namespace Legendary.Thor.Editor
+namespace LegendaryTools.Inspector.Thor.Editor
 {
     public class ThorEditor : UnityEditor.Editor
     {
