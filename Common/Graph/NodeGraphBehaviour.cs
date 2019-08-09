@@ -2,7 +2,7 @@
 using UnityEngine;
 using LegendaryTools;
 
-namespace LegendaryTools.Graph
+namespace LegendaryTools
 {
     public class NodeGraphBehaviour : MonoBehaviour
     {

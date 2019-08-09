@@ -3,7 +3,7 @@ using UnityEngine;
 using LegendaryTools;
 using System;
 
-namespace LegendaryTools.Graph
+namespace LegendaryTools
 {
     public class Node
     {
@@ -137,7 +137,7 @@ namespace LegendaryTools.Graph
         /// Connect two nodes together like a graph
         /// </summary>
         /// <param name="node"></param>
-        public NodeConnection ConnectTo(Node node, NodeConnectionType type = NodeConnectionType.Common, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
+        public NodeConnection CreateConnectionTo(Node node, NodeConnectionType type = NodeConnectionType.Common, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
         {
             if (node != null)
             {
@@ -178,20 +178,20 @@ namespace LegendaryTools.Graph
         /// <summary>
         /// Create a node and connect to it like a tree
         /// </summary>
-        public Node AddChild(NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
+        public Node CreateNodeChild(NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
         {
-            Node newNode = Owner.AddNode();
-            this.ConnectTo(newNode, NodeConnectionType.Tree, direction, weight);
+            Node newNode = Owner.CreateNode();
+            this.CreateConnectionTo(newNode, NodeConnectionType.Tree, direction, weight);
             return newNode;
         }
 
         /// <summary>
         /// Create a node and connect to it like a graph
         /// </summary>
-        public Node AddNode(NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
+        public Node CreateNode(NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
         {
-            Node newNode = Owner.AddNode();
-            this.ConnectTo(newNode, NodeConnectionType.Common, direction, weight);
+            Node newNode = Owner.CreateNode();
+            this.CreateConnectionTo(newNode, NodeConnectionType.Common, direction, weight);
             return newNode;
         }
 
@@ -228,8 +228,18 @@ namespace LegendaryTools.Graph
         {
             if (SubGraph == null)
                 SubGraph = new NodeGraph(this);
+            else
+                Debug.LogWarning("[Node:AddSubGraph() -> A subgraph already exists here, please destroy it first.");
 
             return SubGraph;
+        }
+        
+        public void AddSubGraph(NodeGraph nodeGraph)
+        {
+            if (SubGraph == null)
+                SubGraph = nodeGraph;
+            else
+                Debug.LogWarning("[Node:AddSubGraph() -> A subgraph already exists here, please destroy it first.");
         }
 
         public void RemoveSubGraph()

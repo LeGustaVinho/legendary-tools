@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System;
 
-namespace LegendaryTools.Graph
+namespace LegendaryTools
 {
     public class NodeGraph
     {
@@ -71,7 +71,7 @@ namespace LegendaryTools.Graph
         /// Adds a node in the graph
         /// </summary>
         /// <returns>Node created</returns>
-        public Node AddNode()
+        public Node CreateNode()
         {
             Node newNode = new Node(this);
 
@@ -100,6 +100,8 @@ namespace LegendaryTools.Graph
 
             if (AllNodes.Count == 1)
                 StartOrRootNode = AllNodes.First();
+
+            OnAddNode(newNode);
         }
 
         internal void internal_RemoveNode(Node node)
@@ -110,17 +112,40 @@ namespace LegendaryTools.Graph
             if (ParentNode == node)
                 ParentNode = null;
 
+            OnRemoveNode(node);
             AllNodes.Remove(node);
         }
 
-        internal void internal_AddConnections(NodeConnection newConnection)
+        internal void internal_AddConnection(NodeConnection newConnection)
         {
             AllConnections.Add(newConnection);
+            OnAddConnection(newConnection);
         }
 
-        internal void internal_RemoveConnections(NodeConnection connection)
+        internal void internal_RemoveConnection(NodeConnection connection)
         {
+            OnRemoveConnection(connection);
             AllConnections.Remove(connection);
+        }
+
+        protected virtual void OnAddNode(Node newNode)
+        {
+            
+        }
+        
+        protected virtual void OnRemoveNode(Node node)
+        {
+            
+        }
+        
+        protected virtual void OnAddConnection(NodeConnection newConnection)
+        {
+            
+        }
+        
+        protected virtual void OnRemoveConnection(NodeConnection connection)
+        {
+            
         }
     }
 }

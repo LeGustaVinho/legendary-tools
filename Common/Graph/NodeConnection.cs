@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LegendaryTools.Graph
+namespace LegendaryTools
 {
     public enum NodeConnectionDirection
     {
@@ -41,15 +41,18 @@ namespace LegendaryTools.Graph
             Direction = direction;
             Weight = weight;
 
-            from.Owner.internal_AddConnections(this);
+            from.internal_addConnection(this);
+            to.internal_addConnection(this);
+            
+            from.Owner.internal_AddConnection(this);
         }
 
         public void Destroy()
         {
-            From.Owner.internal_RemoveConnections(this);
-
             From.internal_removeConnection(this);
             To.internal_removeConnection(this);
+            
+            From.Owner.internal_RemoveConnection(this);
         }
     }
 }
