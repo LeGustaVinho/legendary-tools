@@ -8,7 +8,7 @@ namespace LegendaryTools
     {
         public readonly string TriggerName;
         
-        public StateConnection(string triggerName, State @from, State to, NodeConnectionType type = NodeConnectionType.Common, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0) : base(@from, to, type, direction, weight)
+        public StateConnection(string triggerName, State @from, State to, NodeConnectionType type, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0) : base(@from, to, type, direction, weight)
         {
             TriggerName = triggerName;
         }

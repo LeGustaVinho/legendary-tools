@@ -7,10 +7,17 @@ namespace LegendaryTools
 {
     public class StateMachine : NodeGraph
     {
-        public Dictionary<string, State> statesLookup = new Dictionary<string, State>();
-        public Dictionary<string, StateConnection> connectionssLookup = new Dictionary<string, StateConnection>();
+        public string Name;
         
-        public void Trigger(string connectionName)
+        private readonly Dictionary<string, State> statesLookup = new Dictionary<string, State>();
+        private readonly Dictionary<string, StateConnection> connectionsLookup = new Dictionary<string, StateConnection>();
+
+        public StateMachine(string name, State state = null) : base(state)
+        {
+            Name = name;
+        }
+        
+        public void Trigger(string connectionName, object arg)
         {
             
         }
@@ -64,8 +71,8 @@ namespace LegendaryTools
                 return;
             }
             
-            if(!connectionssLookup.ContainsKey(newStateConnection.TriggerName))
-                connectionssLookup.Add(newStateConnection.TriggerName, newStateConnection);
+            if(!connectionsLookup.ContainsKey(newStateConnection.TriggerName))
+                connectionsLookup.Add(newStateConnection.TriggerName, newStateConnection);
             else
                 Debug.LogError("[StateMachine:OnAddConnection("+newConnection.ID+")] -> StateMachine already contains a state connection with name " + newStateConnection.TriggerName);
         }
@@ -79,8 +86,8 @@ namespace LegendaryTools
                 return;
             }
             
-            if(connectionssLookup.ContainsKey(stateConnection.TriggerName))
-                connectionssLookup.Remove(stateConnection.TriggerName);
+            if(connectionsLookup.ContainsKey(stateConnection.TriggerName))
+                connectionsLookup.Remove(stateConnection.TriggerName);
             else
                 Debug.LogError("[StateMachine:OnRemoveConnection("+connection.ID+")] -> StateMachine does not contains a state connection with name " + stateConnection.TriggerName);
         }
