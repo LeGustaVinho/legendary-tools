@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LegendaryTools
+namespace LegendaryTools.Graph
 {
     public enum NodeConnectionDirection
     {
@@ -8,51 +8,30 @@ namespace LegendaryTools
         Backward, //Graph can only move From <- To
         Both //Graph can move From <-> To
     }
-
-    public enum NodeConnectionType
+    
+    public class NodeConnection<G, N, NC, C>
+        where G : Graph<G, N, NC, C>
+        where N : LinkedNode<G, N, NC, C>
+        where NC : NodeConnection<G, N, NC, C>
     {
-        Common, //Default connect between two nodes like a graph
-        Tree, //Connection between two nodes like a tree, so From is Parent and To is Child
-    }
-
-    public class NodeConnection
-    {
-        /// <summary>
-        /// NodeConnection unique identifier
-        /// </summary>
-        public Guid ID;
-
-        public Node From; //Parent if graph is tree
-
-        public Node To; //Child if graph is tree
-
-        public NodeConnectionType Type = NodeConnectionType.Common;
-
+        public Guid ID { get; protected set; }
+        public N From { get; protected set; }
+        public N To { get; protected set; }
         public NodeConnectionDirection Direction = NodeConnectionDirection.Both;
-
         public float Weight;
-
-        public NodeConnection(Node from, Node to, NodeConnectionType type = NodeConnectionType.Common, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
+        public C Context;
+        
+        public NodeConnection()
         {
             ID = Guid.NewGuid();
-            From = from;
-            To = to;
-            Type = type;
-            Direction = direction;
-            Weight = weight;
-
-            from.internal_addConnection(this);
-            to.internal_addConnection(this);
-            
-            from.Owner.internal_AddConnection(this);
         }
-
-        public void Destroy()
+        
+        public NodeConnection(N @from, N to, float weight, C context) : this()
         {
-            From.internal_removeConnection(this);
-            To.internal_removeConnection(this);
-            
-            From.Owner.internal_RemoveConnection(this);
+            From = @from;
+            To = to;
+            Weight = weight;
+            Context = context;
         }
     }
 }
