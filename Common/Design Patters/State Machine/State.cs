@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using LegendaryTools.Graph;
 
 namespace LegendaryTools
 {
-    public class State : Node
+    public class State : LinkedNode<StateMachine, State, StateConnection, StateConnectionContext>
     {
         public readonly string Name;
 
@@ -20,7 +18,9 @@ namespace LegendaryTools
 
         public StateConnection ConnectTo(State state, string triggerName,  NodeConnectionDirection direction = NodeConnectionDirection.Both)
         {
-            return new StateConnection(triggerName,this, state, NodeConnectionType.Common, direction);
+            StateConnectionContext context;
+            context.TriggerName = triggerName;
+            return base.ConnectTo(state, context, direction);
         }
 
         public StateMachine CreateSubStateMachine()

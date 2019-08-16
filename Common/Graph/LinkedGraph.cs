@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,14 +18,17 @@ namespace LegendaryTools.Graph
         N[] Neighbours(N node);
     }
     
-    public abstract class Graph<G, N, NC, C> : HierarchicalGraph<G, N>, IGraph<N>
-        where G : Graph<G, N, NC, C>
+    public abstract class LinkedGraph<G, N, NC, C> : HierarchicalGraph<G, N>, IGraph<N>, ICollection<N>
+        where G : LinkedGraph<G, N, NC, C>
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
     {
-        protected readonly HashSet<N> allNodes = new HashSet<N>();
+        public int Count => allNodes.Count;
+        public bool IsReadOnly => false;
+
+        protected readonly List<N> allNodes = new List<N>();
         
-        public abstract NC CreateConnection(LinkedNode<G, N, NC, C> @from, N to, float weight, C context);
+        public abstract NC CreateConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0);
         
         public void Add(N newNode)
         {
@@ -41,6 +45,16 @@ namespace LegendaryTools.Graph
             }
         }
 
+        public void Clear()
+        {
+            allNodes.Clear();
+        }
+
+        public void CopyTo(N[] array, int arrayIndex)
+        {
+            allNodes.CopyTo(array, arrayIndex);
+        }
+
         public bool Remove(N node)
         {
             return allNodes.Remove(node);
@@ -53,7 +67,17 @@ namespace LegendaryTools.Graph
 
         public N[] Neighbours(N node)
         {
-            return null;
+            return node.Neighbours;
+        }
+
+        public IEnumerator<N> GetEnumerator()
+        {
+            return allNodes.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

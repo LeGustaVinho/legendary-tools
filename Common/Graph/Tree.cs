@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LegendaryTools.Graph
@@ -18,6 +20,26 @@ namespace LegendaryTools.Graph
             {
                 Debug.LogError("[Tree:AddToRoot()] -> Is already busy.");
             }
+        }
+
+        public N DepthSearch(Predicate<N> match)
+        {
+            return null;
+        }
+        
+        public N WidthSearch(Predicate<N> match)
+        {
+            return null;
+        }
+
+        public IEnumerator<N> GetDepthEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+        
+        public IEnumerator<N> GetWidthEnumerator()
+        {
+            throw new NotImplementedException();
         }
     }
 }

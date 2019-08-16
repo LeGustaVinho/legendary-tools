@@ -10,7 +10,7 @@ namespace LegendaryTools.Graph
     }
     
     public class NodeConnection<G, N, NC, C>
-        where G : Graph<G, N, NC, C>
+        where G : LinkedGraph<G, N, NC, C>
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
     {
@@ -26,11 +26,16 @@ namespace LegendaryTools.Graph
             ID = Guid.NewGuid();
         }
         
-        public NodeConnection(N @from, N to, float weight, C context) : this()
+        public NodeConnection(N @from, N to, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0 ) : this()
         {
             From = @from;
             To = to;
+            Direction = direction;
             Weight = weight;
+        }
+        
+        public NodeConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0 ) : this(@from, to, direction, weight)
+        {
             Context = context;
         }
     }

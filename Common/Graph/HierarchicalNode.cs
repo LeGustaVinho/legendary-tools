@@ -34,5 +34,21 @@ namespace LegendaryTools.Graph
         {
             SubGraph = null;
         }
+
+        public override int GetHashCode()
+        {
+            return ID.GetHashCode();
+        }
+        
+        public override bool Equals(object other)
+        {
+            if (!(other.GetType().IsSameOrSubclass(typeof(HierarchicalNode<G, N>))))
+            {
+                return false;
+            }
+
+            HierarchicalNode<G, N> node = (HierarchicalNode<G, N>) other;
+            return ID == node.ID;
+        }
     }
 }

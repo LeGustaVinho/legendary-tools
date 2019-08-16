@@ -1,16 +1,40 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using LegendaryTools.Graph;
 using UnityEngine;
 
 namespace LegendaryTools
 {
-    public class StateConnection : NodeConnection
+    public struct StateConnectionContext
     {
-        public readonly string TriggerName;
-        
-        public StateConnection(string triggerName, State @from, State to, NodeConnectionType type, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0) : base(@from, to, type, direction, weight)
+        public string TriggerName;
+    }
+    
+    public class StateConnection : NodeConnection<StateMachine, State, StateConnection, StateConnectionContext>
+    {
+        private StateConnectionContext Context;
+
+        public string TriggerName
         {
-            TriggerName = triggerName;
+            get { return Context.TriggerName; }
+        }
+        
+        public StateConnection(string triggerName, 
+            State @from, 
+            State to, 
+            NodeConnectionDirection direction = NodeConnectionDirection.Both, 
+            float weight = 0) : base(to, from, direction, weight)
+        {
+            Context.TriggerName = triggerName;
+        }
+        
+        public StateConnection(State @from, 
+            State to, 
+            StateConnectionContext context,
+            NodeConnectionDirection direction = NodeConnectionDirection.Both, 
+            float weight = 0) : base(to, from, direction, weight)
+        {
+            Context = context;
         }
     }
 }

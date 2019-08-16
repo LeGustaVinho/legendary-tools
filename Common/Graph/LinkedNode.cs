@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LegendaryTools.Graph
@@ -11,19 +12,33 @@ namespace LegendaryTools.Graph
     }
 
     public abstract class LinkedNode<G, N, NC, C> : HierarchicalNode<G, N>, INode<N>
-        where G : Graph<G, N, NC, C>
+        where G : LinkedGraph<G, N, NC, C>
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
     {
-        public N[] Neighbours { get; }
-        public int Count
+        public virtual N[] Neighbours
         {
-            get { return Connections.Count; }
+            get
+            {
+                List<N> neighbours = new List<N>();
+
+                for (int i = 0; i < Connections.Count; i++)
+                {
+                    neighbours.Add(Connections[i].To == this ? Connections[i].From : Connections[i].To);
+                }
+                
+                return neighbours.ToArray();
+            }
         }
+        public int Count => Connections.Count;
 
-        public readonly List<NC> Connections = new List<NC>();
-
-        public NC ConnectTo(N to, float weight, C context)
+        protected readonly List<NC> Connections = new List<NC>();
+        
+        protected LinkedNode(G owner) : base(owner)
+        {
+        }
+        
+        public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
         {
             if (to == null)
             {
@@ -37,7 +52,7 @@ namespace LegendaryTools.Graph
                 return null;
             }
             
-            NC newConnection = Owner.CreateConnection(this, to, weight, context);
+            NC newConnection = Owner.CreateConnection(this as N, to, context, direction, weight);
             Connections.Add(newConnection);
             to.Connections.Add(newConnection);
             return newConnection;
@@ -52,6 +67,11 @@ namespace LegendaryTools.Graph
         public NC GetConnection(N node)
         {
             return Connections.Find(item => item.From == node || item.To == node);
+        }
+        
+        public NC FindConnection(Predicate<NC> predicate)
+        {
+            return Connections.Find(predicate);
         }
     }
 }

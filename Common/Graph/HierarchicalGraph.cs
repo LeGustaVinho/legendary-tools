@@ -12,7 +12,7 @@ namespace LegendaryTools.Graph
         public Guid ID { get; protected set; }
         public N ParentNode { get; protected set; }
 
-        public G[] GraphHierachy
+        public G[] GraphHierarchy
         {
             get
             {
@@ -36,6 +36,22 @@ namespace LegendaryTools.Graph
         public HierarchicalGraph()
         {
             ID = Guid.NewGuid();
+        }
+        
+        public override int GetHashCode()
+        {
+            return ID.GetHashCode();
+        }
+        
+        public override bool Equals(object other)
+        {
+            if (!(other.GetType().IsSameOrSubclass(typeof(HierarchicalGraph<G, N>))))
+            {
+                return false;
+            }
+
+            HierarchicalGraph<G, N> node = (HierarchicalGraph<G, N>) other;
+            return ID == node.ID;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace LegendaryTools.Pathfinding
 
     public class AStar<T>
     {
-        private class AStarNode<T> : IPriorityQueueNode
+        private class AStarNode : IPriorityQueueNode
         {
             public float Priority
             {
@@ -39,7 +39,7 @@ namespace LegendaryTools.Pathfinding
             }
         }
 
-        private static readonly Dictionary<T, AStarNode<T>> cachedNodes = new Dictionary<T, AStarNode<T>>();
+        private static readonly Dictionary<T, AStarNode> cachedNodes = new Dictionary<T, AStarNode>();
         private readonly IAStar<T> map;
 
         public AStar(IAStar<T> map)
@@ -49,20 +49,20 @@ namespace LegendaryTools.Pathfinding
 
         public T[] FindPath(T startLocation, T endLocation)
         {
-            Dictionary<AStarNode<T>, AStarNode<T>> cameFrom = new Dictionary<AStarNode<T>, AStarNode<T>>();
-            Dictionary<AStarNode<T>, float> costSoFar = new Dictionary<AStarNode<T>, float>();
-            PriorityQueue<AStarNode<T>> open = new PriorityQueue<AStarNode<T>>();
+            Dictionary<AStarNode, AStarNode> cameFrom = new Dictionary<AStarNode, AStarNode>();
+            Dictionary<AStarNode, float> costSoFar = new Dictionary<AStarNode, float>();
+            PriorityQueue<AStarNode> open = new PriorityQueue<AStarNode>();
 
             cleanNodesData();
 
-            AStarNode<T> startNode = getFromCache(startLocation);
-            AStarNode<T> endNode = getFromCache(endLocation);
+            AStarNode startNode = getFromCache(startLocation);
+            AStarNode endNode = getFromCache(endLocation);
 
             open.Enqueue(startNode);
             cameFrom[startNode] = startNode;
             costSoFar[startNode] = 0;
 
-            AStarNode<T> currentNode;
+            AStarNode currentNode;
             while (open.Count > 0)
             {
                 currentNode = open.Dequeue();
@@ -83,7 +83,7 @@ namespace LegendaryTools.Pathfinding
                 }
 
                 T[] neighbours = map.Neighbors(currentNode.Location);
-                AStarNode<T> currentNeighborsNode = null;
+                AStarNode currentNeighborsNode = null;
                 for (int i = 0; i < neighbours.Length; i++)
                 {
                     currentNeighborsNode = getFromCache(neighbours[i]);
@@ -104,16 +104,16 @@ namespace LegendaryTools.Pathfinding
 
         private static void cleanNodesData()
         {
-            foreach (KeyValuePair<T, AStarNode<T>> pair in cachedNodes)
+            foreach (KeyValuePair<T, AStarNode> pair in cachedNodes)
             {
                 pair.Value.Clean();
             }
         }
 
-        private static AStarNode<T> getFromCache(T node)
+        private static AStarNode getFromCache(T node)
         {
             if (!cachedNodes.ContainsKey(node))
-                cachedNodes.Add(node, new AStarNode<T>(node));
+                cachedNodes.Add(node, new AStarNode(node));
 
             return cachedNodes[node];
         }
