@@ -3,6 +3,7 @@ using LegendaryTools.Graph;
 
 namespace LegendaryTools
 {
+    [Serializable]
     public class State : LinkedNode<StateMachine, State, StateConnection, StateConnectionContext>
     {
         public readonly string Name;
@@ -15,8 +16,13 @@ namespace LegendaryTools
         {
             Name = name;
         }
-
-        public StateConnection ConnectTo(State state, string triggerName,  NodeConnectionDirection direction = NodeConnectionDirection.Both)
+        
+        public State(string name, StateMachine owner, StateMachine subStateMachine) : this(name, owner)
+        {
+            SubGraph = subStateMachine;
+        }
+        
+        public StateConnection ConnectTo(State state, string triggerName,  NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional)
         {
             StateConnectionContext context;
             context.TriggerName = triggerName;
