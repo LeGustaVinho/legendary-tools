@@ -27,14 +27,23 @@ namespace LegendaryTools.Graph
         public bool IsReadOnly => false;
 
         protected readonly List<N> allNodes = new List<N>();
+
+        public event Action<N> OnNodeAdd;
+        public event Action<N> OnNodeRemove;
         
-        public abstract NC CreateConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0);
+        public LinkedGraph(N parentNode) : base(parentNode)
+        {
+            ParentNode = parentNode;
+        }
+        
+        public abstract NC CreateConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0);
         
         public void Add(N newNode)
         {
             if (!allNodes.Contains(newNode))
             {
                 allNodes.Add(newNode);
+                OnNodeAdd?.Invoke(newNode);
 
                 if (StartOrRootNode == null)
                     StartOrRootNode = newNode;
@@ -57,6 +66,7 @@ namespace LegendaryTools.Graph
 
         public bool Remove(N node)
         {
+            OnNodeRemove?.Invoke(node);
             return allNodes.Remove(node);
         }
 

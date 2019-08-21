@@ -4,9 +4,8 @@ namespace LegendaryTools.Graph
 {
     public enum NodeConnectionDirection
     {
-        Foward, //Graph can only move From -> To
-        Backward, //Graph can only move From <- To
-        Both //Graph can move From <-> To
+        Unidirectional, //Graph can move From -> To
+        Bidirectional //Graph can move From <-> To
     }
     
     public class NodeConnection<G, N, NC, C>
@@ -17,7 +16,7 @@ namespace LegendaryTools.Graph
         public Guid ID { get; protected set; }
         public N From { get; protected set; }
         public N To { get; protected set; }
-        public NodeConnectionDirection Direction = NodeConnectionDirection.Both;
+        public NodeConnectionDirection Direction = NodeConnectionDirection.Bidirectional;
         public float Weight;
         public C Context;
         
@@ -26,7 +25,7 @@ namespace LegendaryTools.Graph
             ID = Guid.NewGuid();
         }
         
-        public NodeConnection(N @from, N to, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0 ) : this()
+        public NodeConnection(N @from, N to, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0 ) : this()
         {
             From = @from;
             To = to;
@@ -34,9 +33,15 @@ namespace LegendaryTools.Graph
             Weight = weight;
         }
         
-        public NodeConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0 ) : this(@from, to, direction, weight)
+        public NodeConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0 ) : this(@from, to, direction, weight)
         {
             Context = context;
+        }
+
+        public void Disconnect()
+        {
+            From.RemoveConnection(this as NC);
+            To.RemoveConnection(this as NC);
         }
     }
 }

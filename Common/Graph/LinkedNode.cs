@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -34,11 +35,26 @@ namespace LegendaryTools.Graph
 
         protected readonly List<NC> Connections = new List<NC>();
         
+        public NC[] AllConnections => Connections.ToArray();
+
+        public NC[] OutboundConnections
+        {
+            get { return Connections.FindAll(item=> item.From == this || item.Direction == NodeConnectionDirection.Bidirectional).ToArray(); }
+        }
+        
+        public NC[] InboundConnections
+        {
+            get { return Connections.FindAll(item => item.To == this || item.Direction == NodeConnectionDirection.Bidirectional).ToArray(); }
+        }
+
+        public event Action<NC> OnConnectionAdd;
+        public event Action<NC> OnConnectionRemove;
+        
         protected LinkedNode(G owner) : base(owner)
         {
         }
         
-        public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Both, float weight = 0)
+        public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0)
         {
             if (to == null)
             {
@@ -55,18 +71,24 @@ namespace LegendaryTools.Graph
             NC newConnection = Owner.CreateConnection(this as N, to, context, direction, weight);
             Connections.Add(newConnection);
             to.Connections.Add(newConnection);
+            OnConnectionAdd?.Invoke(newConnection);
             return newConnection;
         }
 
-        public bool Disconnect(N node)
+        public bool RemoveConnection(NC nodeConnection)
         {
-            NC nodeCon = GetConnection(node);
-            return Connections.Remove(nodeCon) && node.Connections.Remove(nodeCon);
+            OnConnectionRemove?.Invoke(nodeConnection);
+            return Connections.Remove(nodeConnection);
         }
-
-        public NC GetConnection(N node)
+        
+        public NC[] GetConnections(N node)
         {
-            return Connections.Find(item => item.From == node || item.To == node);
+            return Connections.FindAll(item => item.From == node || item.To == node).ToArray();
+        }
+        
+        public NC GetConnectionTo(N node)
+        {
+            return Connections.Find(item => item.To == node);
         }
         
         public NC FindConnection(Predicate<NC> predicate)

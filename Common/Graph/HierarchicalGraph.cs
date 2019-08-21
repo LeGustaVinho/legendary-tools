@@ -30,12 +30,28 @@ namespace LegendaryTools.Graph
                 return path.ToArray();
             }
         }
-        
-        public N StartOrRootNode { get; set; }
+
+        protected N startOrRootNode;
+        public N StartOrRootNode
+        {
+            get => startOrRootNode;
+            set
+            {
+                if(value == null)
+                    Debug.LogError("[HierarchicalGraph:StartOrRootNode] -> StartOrRootNode cannot be null.");
+                else
+                    startOrRootNode = value;
+            }
+        }
 
         public HierarchicalGraph()
         {
             ID = Guid.NewGuid();
+        }
+        
+        public HierarchicalGraph(N parentNode) : this()
+        {
+            ParentNode = parentNode;
         }
         
         public override int GetHashCode()
