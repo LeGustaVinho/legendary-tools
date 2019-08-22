@@ -8,24 +8,21 @@ namespace LegendaryTools
     [Serializable]
     public struct StateConnectionContext
     {
-        public string TriggerName;
+        public string Trigger;
     }
     
-    [Serializable]
+    [Serializable] 
     public class StateConnection : NodeConnection<StateMachine, State, StateConnection, StateConnectionContext>
     {
-        public string TriggerName
-        {
-            get { return Context.TriggerName; }
-        }
-        
-        public StateConnection(string triggerName, 
+        public string Trigger => Context.Trigger;
+
+        public StateConnection(string trigger, 
             State @from, 
             State to, 
             NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, 
             float weight = 0) : base(to, from, direction, weight)
         {
-            Context.TriggerName = triggerName;
+            Context.Trigger = trigger;
         }
         
         public StateConnection(State @from, 
