@@ -15,6 +15,25 @@ namespace LegendaryTools.Graph
         public G SubGraph { get; protected set; }
         public G Owner { get; protected set; }
 
+        public bool HasSubGraph => SubGraph != null;
+        
+        public N[] NodeHierarchy
+        {
+            get
+            {
+                List<N> path = new List<N>();
+
+                for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner.ParentNode)
+                {
+                    if (parentNode != null)
+                        path.Add(parentNode);
+                }
+
+                path.Reverse();
+                return path.ToArray();
+            }
+        }
+
         protected HierarchicalNode()
         {
             ID = Guid.NewGuid();

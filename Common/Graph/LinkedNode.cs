@@ -12,7 +12,7 @@ namespace LegendaryTools.Graph
         int Count { get; }
     }
 
-    public abstract class LinkedNode<G, N, NC, C> : HierarchicalNode<G, N>, INode<N>
+    public abstract class LinkedNode<G, N, NC, C> : HierarchicalNode<G, N>, INode<N>, IEnumerable<NC>
         where G : LinkedGraph<G, N, NC, C>
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
@@ -94,6 +94,16 @@ namespace LegendaryTools.Graph
         public NC FindConnection(Predicate<NC> predicate)
         {
             return Connections.Find(predicate);
+        }
+
+        public IEnumerator<NC> GetEnumerator()
+        {
+            return Connections.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

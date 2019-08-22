@@ -75,6 +75,16 @@ namespace LegendaryTools.Graph
             return allNodes.Contains(node);
         }
 
+        public N Find(Predicate<N> predicate)
+        {
+            return allNodes.Find(predicate);
+        }
+        
+        public List<N> FindAll(Predicate<N> predicate)
+        {
+            return allNodes.FindAll(predicate);
+        }
+
         public N[] Neighbours(N node)
         {
             return node.Neighbours;
