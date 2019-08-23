@@ -10,7 +10,7 @@ namespace LegendaryTools
     {
         public readonly string Name;
 
-        public bool IsAnyState { get; private set; }
+        public bool IsAnyState { get; protected set; }
         
         public event Action<object> OnStateEnterEvent;
         public event Action<object> OnStateUpdateEvent;
@@ -18,7 +18,7 @@ namespace LegendaryTools
         
         private readonly Dictionary<string, StateConnection> outboundConnectionsLookup = new Dictionary<string, StateConnection>();
 
-        public State(string name, StateMachine owner) : base(owner)
+        public State(string name, StateMachine owner = null) : base(owner)
         {
             Name = name;
             OnConnectionAdd += onConnectionAdd;
@@ -70,11 +70,8 @@ namespace LegendaryTools
 
             if (outboundConnectionsLookup.ContainsKey(triggerName))
             {
-                if (outboundConnectionsLookup[triggerName].From == this)
-                {
-                    Debug.Log("[State:ConnectTo] -> A state cannot have multiple outbound transitions with the same trigger.");
-                    return null;
-                }
+                Debug.Log("[State:ConnectTo] -> A state cannot have multiple outbound transitions with the same trigger.");
+                return null;
             }
 
             if (targetState.outboundConnectionsLookup.ContainsKey(triggerName))
@@ -110,10 +107,7 @@ namespace LegendaryTools
 
         public StateConnection GetOutboundConnection(string trigger)
         {
-            if (outboundConnectionsLookup.ContainsKey(trigger))
-                return outboundConnectionsLookup[trigger];
-            else
-                return null;
+            return outboundConnectionsLookup.ContainsKey(trigger) ? outboundConnectionsLookup[trigger] : null;
         }
         
         protected virtual void OnStateEnter(object arg)

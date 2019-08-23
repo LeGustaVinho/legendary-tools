@@ -75,53 +75,26 @@ namespace LegendaryTools
 
         public void Transit(StateConnection trigger, State targetState, object arg)
         {
-            if (trigger != null)
-            {
-                if (history[current].State != trigger.From)
-                {
-                    Debug.LogError("[StateMachine:Transit()] -> Trigger from state is not current state.");
-                    return;
-                }
-            }
-
-            State[] graphStateHierarchy;
-            if (current > 0 && history.Count > 0)
-            {
-                graphStateHierarchy = history[current].State.NodeHierarchy;
-                for (int i = 0; i < graphStateHierarchy.Length; i++)
-                {
-                    graphStateHierarchy[i].invokeOnStateExit(arg);
-                }
-            }
-
-            history.Add(new StateLog(targetState, trigger, arg));
-            current = history.Count - 1;
-            
-            graphStateHierarchy = targetState.NodeHierarchy;
-            Array.Reverse(graphStateHierarchy);
-            for (int i = 0; i < graphStateHierarchy.Length; i++)
-            {
-                graphStateHierarchy[i].invokeOnStateEnter(arg);
-            }
+            transit(trigger, targetState, arg, true, true, true);
         }
         
         public void TransitTo(State targetState, object arg = null)
         {
-            Transit(null, targetState, arg);
+            transit(null, targetState, arg, true, true, true);
         }
 
-        public State CreateState(string stateName)
+        public override void Add(State newNode)
         {
-            State newState = new State(stateName, this);
-            cache(newState);
-            Add(newState);
-            return newState;
+            base.Add(newNode);
+            cache(newNode);
         }
 
-        public void DestroyState(string stateName)
+        public override bool Remove(State node)
         {
-            if (statesLookup.ContainsKey(stateName))
-                DestroyState(statesLookup[stateName]);
+            if (statesLookup.ContainsKey(node.Name))
+                DestroyState(statesLookup[node.Name]);
+            
+            return base.Remove(node);
         }
         
         public void DestroyState(State state)
@@ -176,12 +149,20 @@ namespace LegendaryTools
 
         public void MoveBack()
         {
-            
+            tryMoveInHistory(current - 1);
         }
         
         public void MoveForward()
         {
+            tryMoveInHistory(current + 1);
+        }
+
+        private void tryMoveInHistory(int targetIndex)
+        {
+            if (targetIndex < 0 || targetIndex > history.Count - 1) return;
             
+            transit(null, history[targetIndex].State, history[targetIndex].Arg, true, false, true);
+            current = targetIndex;
         }
         
         public void Update(object arg = null)
@@ -227,6 +208,52 @@ namespace LegendaryTools
                     return connection.From == currentState ? connection.To : connection.From;
                 default:
                     return null;
+            }
+        }
+        
+        private void transit(StateConnection trigger, State targetState, object arg, bool callExit, bool modifyHistory, bool callEnter)
+        {
+            if (trigger != null)
+            {
+                if (history[current].State != trigger.From)
+                {
+                    Debug.LogError("[StateMachine:Transit()] -> Trigger from state is not current state.");
+                    return;
+                }
+            }
+
+            State[] graphStateHierarchy;
+            if (callExit)
+            {
+                if (current > 0 && history.Count > 0)
+                {
+                    graphStateHierarchy = history[current].State.NodeHierarchy;
+                    for (int i = 0; i < graphStateHierarchy.Length; i++)
+                    {
+                        graphStateHierarchy[i].invokeOnStateExit(arg);
+                    }
+                }
+            }
+
+            if (modifyHistory)
+            {
+                if (current != history.Count - 1)
+                {
+                    history.RemoveRange(current + 1, history.Count - (current + 1));
+                }
+                
+                history.Add(new StateLog(targetState, trigger, arg));
+                current = history.Count - 1;
+            }
+
+            if (callEnter)
+            {
+                graphStateHierarchy = targetState.NodeHierarchy;
+                Array.Reverse(graphStateHierarchy);
+                for (int i = 0; i < graphStateHierarchy.Length; i++)
+                {
+                    graphStateHierarchy[i].invokeOnStateEnter(arg);
+                }
             }
         }
     }
