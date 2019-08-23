@@ -50,8 +50,9 @@ namespace LegendaryTools.Graph
         public event Action<NC> OnConnectionAdd;
         public event Action<NC> OnConnectionRemove;
         
-        protected LinkedNode(G owner) : base(owner)
+        public LinkedNode(G owner = null) : base(owner)
         {
+            owner?.Add(this as N);
         }
         
         public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0)

@@ -17,15 +17,13 @@ namespace LegendaryTools.Graph
             get
             {
                 List<G> path = new List<G>();
-                if (ParentNode != null)
-                {
-                    for (N parentNode = ParentNode; parentNode != null; parentNode = parentNode.Owner.ParentNode)
-                    {
-                        if (parentNode.Owner != null)
-                            path.Add(parentNode.Owner);
-                    }
-                }
 
+                for (N parentNode = ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
+                {
+                    if (parentNode.Owner != null)
+                        path.Add(parentNode.Owner);
+                }
+                
                 path.Reverse();
                 return path.ToArray();
             }

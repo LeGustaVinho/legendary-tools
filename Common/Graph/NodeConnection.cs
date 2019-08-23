@@ -20,13 +20,9 @@ namespace LegendaryTools.Graph
         public float Weight;
         public C Context;
         
-        public NodeConnection()
+        public NodeConnection(N @from, N to, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0 )
         {
             ID = Guid.NewGuid();
-        }
-        
-        public NodeConnection(N @from, N to, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0 ) : this()
-        {
             From = @from;
             To = to;
             Direction = direction;

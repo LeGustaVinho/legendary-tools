@@ -31,17 +31,23 @@ namespace LegendaryTools.Graph
         public event Action<N> OnNodeAdd;
         public event Action<N> OnNodeRemove;
         
+        public LinkedGraph() : base()
+        {
+            
+        }
+        
         public LinkedGraph(N parentNode) : base(parentNode)
         {
-            ParentNode = parentNode;
+            
         }
         
         public abstract NC CreateConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0);
         
-        public void Add(N newNode)
+        public virtual void Add(N newNode)
         {
             if (!allNodes.Contains(newNode))
             {
+                newNode.Owner = this as G;
                 allNodes.Add(newNode);
                 OnNodeAdd?.Invoke(newNode);
 
@@ -64,8 +70,9 @@ namespace LegendaryTools.Graph
             allNodes.CopyTo(array, arrayIndex);
         }
 
-        public bool Remove(N node)
+        public virtual bool Remove(N node)
         {
+            node.Owner = null;
             OnNodeRemove?.Invoke(node);
             return allNodes.Remove(node);
         }

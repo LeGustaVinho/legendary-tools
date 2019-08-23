@@ -13,7 +13,8 @@ namespace LegendaryTools.Graph
     {
         public Guid ID { get; protected set; }
         public G SubGraph { get; protected set; }
-        public G Owner { get; protected set; }
+
+        public G Owner { get; protected internal set; }
 
         public bool HasSubGraph => SubGraph != null;
         
@@ -23,7 +24,7 @@ namespace LegendaryTools.Graph
             {
                 List<N> path = new List<N>();
 
-                for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner.ParentNode)
+                for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
                 {
                     if (parentNode != null)
                         path.Add(parentNode);
