@@ -24,7 +24,7 @@ namespace LegendaryTools
     {
         public string Name;
         
-        private readonly Dictionary<string, State> statesLookup = new Dictionary<string, State>();
+        //private readonly Dictionary<string, State> statesLookup = new Dictionary<string, State>();
 
         public readonly State AnyState;
 
@@ -38,7 +38,7 @@ namespace LegendaryTools
         public StateMachine(string name, State state = null) : base(state)
         {
             Name = name;
-            AnyState = new State(ANY_STATE_DEFAULT_NAME, this);
+            AnyState = new State(ANY_STATE_DEFAULT_NAME, this, true);
         }
         
         public void Trigger(string triggerName, object arg = null)
@@ -82,32 +82,15 @@ namespace LegendaryTools
         {
             transit(null, targetState, arg, true, true, true);
         }
-
-        public override void Add(State newNode)
-        {
-            base.Add(newNode);
-            cache(newNode);
-        }
-
-        public override bool Remove(State node)
-        {
-            if (statesLookup.ContainsKey(node.Name))
-                DestroyState(statesLookup[node.Name]);
-            
-            return base.Remove(node);
-        }
         
         public void DestroyState(State state)
         {
-            if (!statesLookup.ContainsKey(state.Name)) return;
-            
             StateConnection[] allConnections = state.AllConnections;
             for (int i = 0; i < allConnections.Length; i++)
             {
                 allConnections[i].Disconnect();
             }
 
-            statesLookup.Remove(state.Name);
             Remove(state);
         }
         
@@ -157,6 +140,14 @@ namespace LegendaryTools
             tryMoveInHistory(current + 1);
         }
 
+        public override void Add(State newNode)
+        {
+            if (startOrRootNode != null && startOrRootNode.IsAnyState)
+                startOrRootNode = null;
+            
+            base.Add(newNode);
+        }
+
         private void tryMoveInHistory(int targetIndex)
         {
             if (targetIndex < 0 || targetIndex > history.Count - 1) return;
@@ -178,13 +169,10 @@ namespace LegendaryTools
             StateConnection newStateConnection = new StateConnection(@from, to, context, direction, weight);
             return newStateConnection;
         }
-
-        private void cache(State newState)
+        
+        public override string ToString()
         {
-            if (!statesLookup.ContainsKey(newState.Name))
-            {
-                statesLookup.Add(newState.Name, newState);
-            }
+            return base.ToString() + ", Name: " + Name;
         }
 
         private State GetDestination(string trigger, State currentState, out StateConnection stateConnection)
@@ -225,7 +213,7 @@ namespace LegendaryTools
             State[] graphStateHierarchy;
             if (callExit)
             {
-                if (current > 0 && history.Count > 0)
+                if (current >= 0 && history.Count > 0)
                 {
                     graphStateHierarchy = history[current].State.NodeHierarchy;
                     for (int i = 0; i < graphStateHierarchy.Length; i++)

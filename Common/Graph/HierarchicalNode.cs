@@ -23,7 +23,7 @@ namespace LegendaryTools.Graph
             get
             {
                 List<N> path = new List<N>();
-
+                path.Add(this as N);
                 for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
                 {
                     if (parentNode != null)

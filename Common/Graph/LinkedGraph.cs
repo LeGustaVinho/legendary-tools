@@ -111,5 +111,15 @@ namespace LegendaryTools.Graph
         {
             return "LinkedGraph ID " + ID + ", node count " + allNodes.Count;
         }
+
+        protected void invokeOnNodeAddEvent(N node)
+        {
+            OnNodeAdd?.Invoke(node);
+        }
+        
+        protected void invokeOnNodeRemoveEvent(N node)
+        {
+            OnNodeRemove?.Invoke(node);
+        }
     }
 }

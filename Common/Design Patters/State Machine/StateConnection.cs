@@ -33,5 +33,12 @@ namespace LegendaryTools
         {
             Context = context;
         }
+        
+        public override string ToString()
+        {
+            return base.ToString() + ", Trigger " + Trigger;
+        }
     }
+    
+    
 }

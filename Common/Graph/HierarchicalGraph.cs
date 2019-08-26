@@ -17,7 +17,7 @@ namespace LegendaryTools.Graph
             get
             {
                 List<G> path = new List<G>();
-
+                path.Add(this as G);
                 for (N parentNode = ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
                 {
                     if (parentNode.Owner != null)
@@ -50,7 +50,9 @@ namespace LegendaryTools.Graph
         public HierarchicalGraph(N parentNode) : this()
         {
             ParentNode = parentNode;
-            parentNode.SubGraph = this as G;
+            
+            if(parentNode != null)
+                parentNode.SubGraph = this as G;
         }
         
         public override int GetHashCode()

@@ -24,11 +24,6 @@ namespace LegendaryTools
             OnConnectionAdd += onConnectionAdd;
             OnConnectionRemove += onConnectionRemove;
         }
-
-        public State(string name, StateMachine owner, StateMachine subStateMachine) : this(name, owner)
-        {
-            SubGraph = subStateMachine;
-        }
         
         internal State(string name, StateMachine owner, bool isAnyState) : this(name, owner)
         {
@@ -109,7 +104,12 @@ namespace LegendaryTools
         {
             return outboundConnectionsLookup.ContainsKey(trigger) ? outboundConnectionsLookup[trigger] : null;
         }
-        
+
+        public override string ToString()
+        {
+            return base.ToString() + ", Name " + Name;
+        }
+
         protected virtual void OnStateEnter(object arg)
         {
             
