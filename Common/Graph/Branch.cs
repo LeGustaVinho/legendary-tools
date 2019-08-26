@@ -22,11 +22,10 @@ namespace LegendaryTools.Graph
         public int Count => childs.Count;
 
         public bool IsReadOnly { get; }
-        public N[] BranchHierachy { get; }
 
-        public N Parent { get; protected set; }
+        public N Parent { get; protected internal set; }
         
-        public List<N> TreeParentHierarchy
+        public N[] BranchHierachy
         {
             get
             {
@@ -37,7 +36,7 @@ namespace LegendaryTools.Graph
                         path.Add(parent);
                 }
                 path.Reverse();
-                return path;
+                return path.ToArray();
             }
         }
         

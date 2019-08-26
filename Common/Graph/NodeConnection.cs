@@ -39,5 +39,10 @@ namespace LegendaryTools.Graph
             From.RemoveConnection(this as NC);
             To.RemoveConnection(this as NC);
         }
+
+        public override string ToString()
+        {
+            return "NodeConnection, from " + From.ID + ", to " + To.ID + ", direction: " + Direction;
+        }
     }
 }

@@ -106,5 +106,10 @@ namespace LegendaryTools.Graph
         {
             return GetEnumerator();
         }
+
+        public override string ToString()
+        {
+            return "LinkedGraph ID " + ID + ", node count " + allNodes.Count;
+        }
     }
 }

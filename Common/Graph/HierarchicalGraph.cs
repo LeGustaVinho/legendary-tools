@@ -10,7 +10,7 @@ namespace LegendaryTools.Graph
     where N : HierarchicalNode<G, N>
     {
         public Guid ID { get; protected set; }
-        public N ParentNode { get; protected set; }
+        public N ParentNode { get; protected internal set; }
 
         public G[] GraphHierarchy
         {
@@ -50,6 +50,7 @@ namespace LegendaryTools.Graph
         public HierarchicalGraph(N parentNode) : this()
         {
             ParentNode = parentNode;
+            parentNode.SubGraph = this as G;
         }
         
         public override int GetHashCode()

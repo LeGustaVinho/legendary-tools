@@ -25,7 +25,7 @@ namespace LegendaryTools.Graph
 
                 for (int i = 0; i < Connections.Count; i++)
                 {
-                    neighbours.Add(Connections[i].To == this ? Connections[i].From : Connections[i].To);
+                    neighbours.Add(Connections[i].From == this ? Connections[i].To : Connections[i].From);
                 }
                 
                 return neighbours.ToArray();
@@ -105,6 +105,11 @@ namespace LegendaryTools.Graph
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public override string ToString()
+        {
+            return "Node ID: " + ID + ", Connections: " + Connections.Count;
         }
     }
 }

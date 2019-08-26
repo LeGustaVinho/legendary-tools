@@ -12,7 +12,7 @@ namespace LegendaryTools.Graph
         where N : HierarchicalNode<G, N>
     {
         public Guid ID { get; protected set; }
-        public G SubGraph { get; protected set; }
+        public G SubGraph { get; protected internal set; }
 
         public G Owner { get; protected internal set; }
 
@@ -48,10 +48,14 @@ namespace LegendaryTools.Graph
         public void AddSubGraph (G subGraph)
         {
             SubGraph = subGraph;
+            SubGraph.ParentNode = this as N;
         }
 
         public void RemoveSubGraph()
         {
+            if (SubGraph == null) return;
+            
+            SubGraph.ParentNode = null;
             SubGraph = null;
         }
 

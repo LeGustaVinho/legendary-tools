@@ -9,17 +9,18 @@ namespace LegendaryTools.Graph
         where G : Tree<G, N>
         where N : Branch<G, N>
     {
-        public void AddToRoot(N newNode)
+        public Tree(N newNode)
         {
-            if (StartOrRootNode == null)
-            {
-                StartOrRootNode = newNode;
-                newNode.SetParent(null);
-            }
-            else
-            {
-                Debug.LogError("[Tree:AddToRoot()] -> Is already busy.");
-            }
+            newNode.Owner = this as G;
+            StartOrRootNode = newNode;
+            newNode.SetParent(null);
+        }
+        
+        public Tree(N newNode)
+        {
+            newNode.Owner = this as G;
+            StartOrRootNode = newNode;
+            newNode.SetParent(null);
         }
 
         public N DepthSearch(Predicate<N> match)
