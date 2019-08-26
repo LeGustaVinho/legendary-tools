@@ -9,14 +9,14 @@ namespace LegendaryTools.Graph
         where G : Tree<G, N>
         where N : Branch<G, N>
     {
-        public Tree(N newNode)
+        public Tree(N newNode) : base()
         {
             newNode.Owner = this as G;
             StartOrRootNode = newNode;
             newNode.SetParent(null);
         }
         
-        public Tree(N newNode)
+        public Tree(N newNode, N parentNode) : base(parentNode)
         {
             newNode.Owner = this as G;
             StartOrRootNode = newNode;
