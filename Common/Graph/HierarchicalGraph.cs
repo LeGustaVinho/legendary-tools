@@ -12,22 +12,7 @@ namespace LegendaryTools.Graph
         public Guid ID { get; protected set; }
         public N ParentNode { get; protected internal set; }
 
-        public G[] GraphHierarchy
-        {
-            get
-            {
-                List<G> path = new List<G>();
-                path.Add(this as G);
-                for (N parentNode = ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
-                {
-                    if (parentNode.Owner != null)
-                        path.Add(parentNode.Owner);
-                }
-                
-                path.Reverse();
-                return path.ToArray();
-            }
-        }
+        public G[] GraphHierarchy => GetHierarchyFromGraph();
 
         protected N startOrRootNode;
         public N StartOrRootNode
@@ -53,6 +38,23 @@ namespace LegendaryTools.Graph
             
             if(parentNode != null)
                 parentNode.SubGraph = this as G;
+        }
+        
+        public G[] GetHierarchyFromGraph(G highLevelGraph = null)
+        {
+            List<G> path = new List<G>();
+            path.Add(this as G);
+            for (N parentNode = ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
+            {
+                if (parentNode.Owner != null)
+                    path.Add(parentNode.Owner);
+
+                if (highLevelGraph != null && parentNode.Owner == highLevelGraph)
+                    break;
+            }
+                
+            path.Reverse();
+            return path.ToArray();
         }
         
         public override int GetHashCode()

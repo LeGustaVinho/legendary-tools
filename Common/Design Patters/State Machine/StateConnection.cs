@@ -20,7 +20,7 @@ namespace LegendaryTools
             State @from, 
             State to, 
             NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, 
-            float weight = 0) : base(to, from, direction, weight)
+            float weight = 0) : base(from, to, direction, weight)
         {
             Context.Trigger = trigger;
         }
@@ -29,7 +29,7 @@ namespace LegendaryTools
             State to, 
             StateConnectionContext context,
             NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, 
-            float weight = 0) : base(to, from, direction, weight)
+            float weight = 0) : base(from, to, direction, weight)
         {
             Context = context;
         }
@@ -39,6 +39,4 @@ namespace LegendaryTools
             return base.ToString() + ", Trigger " + Trigger;
         }
     }
-    
-    
 }

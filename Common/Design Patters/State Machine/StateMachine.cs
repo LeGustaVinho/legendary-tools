@@ -23,8 +23,6 @@ namespace LegendaryTools
     public class StateMachine : LinkedGraph<StateMachine, State, StateConnection, StateConnectionContext>
     {
         public string Name;
-        
-        //private readonly Dictionary<string, State> statesLookup = new Dictionary<string, State>();
 
         public readonly State AnyState;
 
@@ -166,8 +164,7 @@ namespace LegendaryTools
         public override StateConnection CreateConnection(State @from, State to, StateConnectionContext context,
             NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0)
         {
-            StateConnection newStateConnection = new StateConnection(@from, to, context, direction, weight);
-            return newStateConnection;
+            return new StateConnection(@from, to, context, direction, weight);
         }
         
         public override string ToString()
@@ -210,12 +207,15 @@ namespace LegendaryTools
                 }
             }
 
+            State nearestAncestor = current >= 0 && history.Count > 0 ? history[current].State.FindNearestAncestor(targetState) : null;
+
             State[] graphStateHierarchy;
             if (callExit)
             {
                 if (current >= 0 && history.Count > 0)
                 {
-                    graphStateHierarchy = history[current].State.NodeHierarchy;
+                    graphStateHierarchy = history[current].State.GetHierarchyFromNode(nearestAncestor);
+                    Array.Reverse(graphStateHierarchy);
                     for (int i = 0; i < graphStateHierarchy.Length; i++)
                     {
                         graphStateHierarchy[i].invokeOnStateExit(arg);
@@ -236,8 +236,8 @@ namespace LegendaryTools
 
             if (callEnter)
             {
-                graphStateHierarchy = targetState.NodeHierarchy;
-                Array.Reverse(graphStateHierarchy);
+                graphStateHierarchy = targetState.GetHierarchyFromNode(nearestAncestor);
+                
                 for (int i = 0; i < graphStateHierarchy.Length; i++)
                 {
                     graphStateHierarchy[i].invokeOnStateEnter(arg);

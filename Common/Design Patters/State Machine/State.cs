@@ -105,6 +105,23 @@ namespace LegendaryTools
             return outboundConnectionsLookup.ContainsKey(trigger) ? outboundConnectionsLookup[trigger] : null;
         }
 
+        public State FindNearestAncestor(State relativeTo)
+        {
+            State[] relativeHierarchy = relativeTo.NodeHierarchy;
+            State[] currentStateHierarchy = NodeHierarchy;
+
+            State[] shortestHierarchy = relativeHierarchy.Length > currentStateHierarchy.Length ? currentStateHierarchy : relativeHierarchy;
+            HashSet<State> longestHierarchy = new HashSet<State>(relativeHierarchy.Length > currentStateHierarchy.Length ? relativeHierarchy : currentStateHierarchy);
+
+            for (int i = shortestHierarchy.Length - 1; i >= 0; i--)
+            {
+                if (longestHierarchy.Contains(shortestHierarchy[i]))
+                    return shortestHierarchy[i];
+            }
+
+            return null;
+        }
+
         public override string ToString()
         {
             return base.ToString() + ", Name " + Name;

@@ -18,22 +18,7 @@ namespace LegendaryTools.Graph
 
         public bool HasSubGraph => SubGraph != null;
         
-        public N[] NodeHierarchy
-        {
-            get
-            {
-                List<N> path = new List<N>();
-                path.Add(this as N);
-                for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
-                {
-                    if (parentNode != null)
-                        path.Add(parentNode);
-                }
-
-                path.Reverse();
-                return path.ToArray();
-            }
-        }
+        public N[] NodeHierarchy => GetHierarchyFromNode();
 
         protected HierarchicalNode()
         {
@@ -57,6 +42,23 @@ namespace LegendaryTools.Graph
             
             SubGraph.ParentNode = null;
             SubGraph = null;
+        }
+        
+        public N[] GetHierarchyFromNode(N highLevelNode = null)
+        {
+            List<N> path = new List<N>();
+            path.Add(this as N);
+            for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
+            {
+                if (highLevelNode != null && parentNode == highLevelNode)
+                    break;
+                
+                if (parentNode != null)
+                    path.Add(parentNode);
+            }
+
+            path.Reverse();
+            return path.ToArray();
         }
 
         public override int GetHashCode()
