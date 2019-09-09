@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace LegendaryTools.Graph
 {
@@ -9,13 +7,13 @@ namespace LegendaryTools.Graph
         where G : Tree<G, N>
         where N : Branch<G, N>
     {
-        public Tree(N newNode) : base()
+        public Tree(N newNode)
         {
             newNode.Owner = this as G;
             StartOrRootNode = newNode;
             newNode.SetParent(null);
         }
-        
+
         public Tree(N newNode, N parentNode) : base(parentNode)
         {
             newNode.Owner = this as G;
@@ -27,7 +25,7 @@ namespace LegendaryTools.Graph
         {
             return null;
         }
-        
+
         public N WidthSearch(Predicate<N> match)
         {
             return null;
@@ -37,7 +35,7 @@ namespace LegendaryTools.Graph
         {
             throw new NotImplementedException();
         }
-        
+
         public IEnumerator<N> GetWidthEnumerator()
         {
             throw new NotImplementedException();

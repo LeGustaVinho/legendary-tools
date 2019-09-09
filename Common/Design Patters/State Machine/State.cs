@@ -10,13 +10,8 @@ namespace LegendaryTools
     {
         public readonly string Name;
 
-        public bool IsAnyState { get; protected set; }
-        
-        public event Action<object> OnStateEnterEvent;
-        public event Action<object> OnStateUpdateEvent;
-        public event Action<object> OnStateExitEvent;
-        
-        private readonly Dictionary<string, StateConnection> outboundConnectionsLookup = new Dictionary<string, StateConnection>();
+        private readonly Dictionary<string, StateConnection> outboundConnectionsLookup =
+            new Dictionary<string, StateConnection>();
 
         public State(string name, StateMachine owner = null) : base(owner)
         {
@@ -24,13 +19,20 @@ namespace LegendaryTools
             OnConnectionAdd += onConnectionAdd;
             OnConnectionRemove += onConnectionRemove;
         }
-        
+
         internal State(string name, StateMachine owner, bool isAnyState) : this(name, owner)
         {
             IsAnyState = isAnyState;
         }
-        
-        public StateConnection ConnectTo(State targetState, string triggerName,  NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional)
+
+        public bool IsAnyState { get; protected set; }
+
+        public event Action<object> OnStateEnterEvent;
+        public event Action<object> OnStateUpdateEvent;
+        public event Action<object> OnStateExitEvent;
+
+        public StateConnection ConnectTo(State targetState, string triggerName,
+            NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional)
         {
             if (targetState.HasSubGraph)
             {
@@ -46,14 +48,15 @@ namespace LegendaryTools
 
             StateMachine[] targetStateMachineHierarchy = targetState.Owner.GraphHierarchy;
             StateMachine[] selfStateMachineHierarchy = Owner.GraphHierarchy;
-            if (targetStateMachineHierarchy != null && 
+            if (targetStateMachineHierarchy != null &&
                 selfStateMachineHierarchy != null &&
-                targetStateMachineHierarchy.Length > 0 
+                targetStateMachineHierarchy.Length > 0
                 && selfStateMachineHierarchy.Length > 0)
             {
                 if (targetStateMachineHierarchy[0] != selfStateMachineHierarchy[0])
                 {
-                    Debug.Log("[State:ConnectTo] -> A state cannot connect to another state that is not in the same state machine family.");
+                    Debug.Log(
+                        "[State:ConnectTo] -> A state cannot connect to another state that is not in the same state machine family.");
                     return null;
                 }
             }
@@ -65,7 +68,8 @@ namespace LegendaryTools
 
             if (outboundConnectionsLookup.ContainsKey(triggerName))
             {
-                Debug.Log("[State:ConnectTo] -> A state cannot have multiple outbound transitions with the same trigger.");
+                Debug.Log(
+                    "[State:ConnectTo] -> A state cannot have multiple outbound transitions with the same trigger.");
                 return null;
             }
 
@@ -81,14 +85,15 @@ namespace LegendaryTools
                         return null;
                     }
 
-                    targetState.outboundConnectionsLookup[triggerName].Direction = NodeConnectionDirection.Bidirectional;
+                    targetState.outboundConnectionsLookup[triggerName].Direction =
+                        NodeConnectionDirection.Bidirectional;
                     return targetState.outboundConnectionsLookup[triggerName];
                 }
             }
 
             StateConnectionContext context;
             context.Trigger = triggerName;
-            
+
             return base.ConnectTo(targetState, context, direction);
         }
 
@@ -96,7 +101,7 @@ namespace LegendaryTools
         {
             StateMachine newStateMachine = new StateMachine(Name, this);
             AddSubGraph(newStateMachine);
-            
+
             return newStateMachine;
         }
 
@@ -110,13 +115,19 @@ namespace LegendaryTools
             State[] relativeHierarchy = relativeTo.NodeHierarchy;
             State[] currentStateHierarchy = NodeHierarchy;
 
-            State[] shortestHierarchy = relativeHierarchy.Length > currentStateHierarchy.Length ? currentStateHierarchy : relativeHierarchy;
-            HashSet<State> longestHierarchy = new HashSet<State>(relativeHierarchy.Length > currentStateHierarchy.Length ? relativeHierarchy : currentStateHierarchy);
+            State[] shortestHierarchy = relativeHierarchy.Length > currentStateHierarchy.Length
+                ? currentStateHierarchy
+                : relativeHierarchy;
+            HashSet<State> longestHierarchy = new HashSet<State>(relativeHierarchy.Length > currentStateHierarchy.Length
+                ? relativeHierarchy
+                : currentStateHierarchy);
 
             for (int i = shortestHierarchy.Length - 1; i >= 0; i--)
             {
                 if (longestHierarchy.Contains(shortestHierarchy[i]))
+                {
                     return shortestHierarchy[i];
+                }
             }
 
             return null;
@@ -129,34 +140,31 @@ namespace LegendaryTools
 
         protected virtual void OnStateEnter(object arg)
         {
-            
         }
-        
+
         protected virtual void OnStateUpdate(object arg)
         {
-            
         }
-        
+
         protected virtual void OnStateExit(object arg)
         {
-            
         }
-        
+
         internal void invokeOnStateEnter(object arg)
         {
             OnStateEnter(arg);
         }
-        
+
         internal void invokeOnStateUpdate(object arg)
         {
             OnStateUpdate(arg);
         }
-        
+
         internal void invokeOnStateExit(object arg)
         {
             OnStateExit(arg);
         }
-        
+
         private void onConnectionAdd(StateConnection stateConnection)
         {
             if (stateConnection.From == this)
@@ -164,7 +172,7 @@ namespace LegendaryTools
                 outboundConnectionsLookup.Add(stateConnection.Trigger, stateConnection);
             }
         }
-        
+
         private void onConnectionRemove(StateConnection stateConnection)
         {
             if (stateConnection.From == this)

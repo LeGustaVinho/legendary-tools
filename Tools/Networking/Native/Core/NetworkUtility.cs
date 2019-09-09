@@ -1,11 +1,13 @@
+using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.IO;
 using System.Text;
 using System.Threading;
-
+using UnityEngine;
 #if UNITY_IPHONE || !UNITY_WEBPLAYER
 using System.Net.NetworkInformation;
+
 #endif
 
 namespace LegendaryTools.Networking
@@ -13,10 +15,28 @@ namespace LegendaryTools.Networking
     /// <summary>
     /// Generic sets of helper functions used within network system.
     /// </summary>
-
-    static public class NetworkUtility
+    public static class NetworkUtility
     {
-        static string mChecker = null;
+        public delegate void OnResolvedIPs(IPAddress local, IPAddress ext);
+
+        private static string mChecker;
+
+        private static IPAddress mLocalAddress;
+        private static IPAddress mExternalAddress;
+
+        /// <summary>
+        /// Whether the external IP address is reliable. It's set to 'true' when it gets resolved successfully.
+        /// </summary>
+        public static bool isExternalIPReliable;
+
+        private static ListLessGarb<IPAddress> mAddresses;
+        private static OnResolvedIPs mOnResolve;
+        private static Thread mResolveThread;
+
+        /// <summary>
+        /// Application directory to use in My Documents. Generally should be the name of your game.
+        /// </summary>
+        public static string applicationDirectory = null;
 
         /// <summary>
         /// Get or set the URL that will perform the IP check. The URL-returned value should be simply the IP address:
@@ -24,12 +44,9 @@ namespace LegendaryTools.Networking
         /// Note that the server must have a valid policy XML if it's accessed from a Unity web player build.
         /// </summary>
 
-        static public string ipCheckerUrl
+        public static string ipCheckerUrl
         {
-            get
-            {
-                return mChecker;
-            }
+            get => mChecker;
             set
             {
                 if (mChecker != value)
@@ -41,59 +58,17 @@ namespace LegendaryTools.Networking
             }
         }
 
-        static IPAddress mLocalAddress;
-        static IPAddress mExternalAddress;
-
-        /// <summary>
-        /// Whether the external IP address is reliable. It's set to 'true' when it gets resolved successfully.
-        /// </summary>
-
-        static public bool isExternalIPReliable = false;
-
         /// <summary>
         /// Generate a random port from 10,000 to 60,000.
         /// </summary>
 
-        static public int randomPort { get { return 10000 + (int)(System.DateTime.UtcNow.Ticks % 50000); } }
-
-#if !UNITY_WEBPLAYER && !UNITY_WINRT
-        static ListLessGarb<NetworkInterface> mInterfaces = null;
-
-        /// <summary>
-        /// Return the list of operational network interfaces.
-        /// </summary>
-
-        static public ListLessGarb<NetworkInterface> networkInterfaces
-        {
-            get
-            {
-                if (mInterfaces == null)
-                {
-                    mInterfaces = new ListLessGarb<NetworkInterface>();
-                    NetworkInterface[] list = NetworkInterface.GetAllNetworkInterfaces();
-
-                    foreach (NetworkInterface ni in list)
-                    {
-                        if (ni.Supports(NetworkInterfaceComponent.IPv4) &&
-                            (ni.OperationalStatus == OperationalStatus.Up ||
-                            ni.OperationalStatus == OperationalStatus.Unknown))
-                            mInterfaces.Add(ni);
-                    }
-                }
-
-                UnityEngine.Debug.Log("[Tools:networkInterfaces] Amount: " + mInterfaces.Count);
-
-                return mInterfaces;
-            }
-        }
-#endif
-        static ListLessGarb<IPAddress> mAddresses = null;
+        public static int randomPort => 10000 + (int) (DateTime.UtcNow.Ticks % 50000);
 
         /// <summary>
         /// Return the list of local addresses. There can be more than one if there is more than one network (for example: Hamachi).
         /// </summary>
 
-        static public ListLessGarb<IPAddress> localAddresses
+        public static ListLessGarb<IPAddress> localAddresses
         {
             get
             {
@@ -103,19 +78,28 @@ namespace LegendaryTools.Networking
 #if !UNITY_WEBPLAYER && !UNITY_WINRT
                     try
                     {
-                        ListLessGarb<NetworkInterface> list = networkInterfaces;                        
+                        ListLessGarb<NetworkInterface> list = networkInterfaces;
 
                         for (int i = list.size; i > 0;)
                         {
                             NetworkInterface ni = list[--i];
-                            if (ni == null) continue;
+                            if (ni == null)
+                            {
+                                continue;
+                            }
 
                             IPInterfaceProperties props = ni.GetIPProperties();
-                            if (props == null) continue;
+                            if (props == null)
+                            {
+                                continue;
+                            }
                             //if (ni.NetworkInterfaceType == NetworkInterfaceType.Unknown) continue;
 
                             UnicastIPAddressInformationCollection uniAddresses = props.UnicastAddresses;
-                            if (uniAddresses == null) continue;
+                            if (uniAddresses == null)
+                            {
+                                continue;
+                            }
 
                             foreach (UnicastIPAddressInformation uni in uniAddresses)
                             {
@@ -129,15 +113,17 @@ namespace LegendaryTools.Networking
                                 // at System.Net.NetworkInformation.Win32UnicastIPAddressInformation.get_Address () [0x00000] in <filename unknown>:0
 
                                 if (IsValidAddress(uni.Address))
+                                {
                                     mAddresses.Add(uni.Address);
+                                }
                             }
                         }
 
-                        UnityEngine.Debug.Log("[Tools:networkInterfaces] 1 localAddresses Amount: " + mAddresses.Count);
+                        Debug.Log("[Tools:networkInterfaces] 1 localAddresses Amount: " + mAddresses.Count);
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
-                        UnityEngine.Debug.LogException(ex);
+                        Debug.LogException(ex);
                     }
 #endif
 #if !UNITY_IPHONE && !UNITY_EDITOR_OSX && !UNITY_STANDALONE_OSX && !UNITY_WINRT
@@ -154,18 +140,23 @@ namespace LegendaryTools.Networking
                             foreach (IPAddress ad in ips)
                             {
                                 if (IsValidAddress(ad) && !mAddresses.Contains(ad))
+                                {
                                     mAddresses.Add(ad);
+                                }
                             }
                         }
                     }
 
-                    UnityEngine.Debug.Log("[Tools:networkInterfaces] 2 localAddresses Amount: " + mAddresses.Count);
+                    Debug.Log("[Tools:networkInterfaces] 2 localAddresses Amount: " + mAddresses.Count);
 #endif
                     // If everything else fails, simply use the loopback address
-                    if (mAddresses.size == 0) mAddresses.Add(IPAddress.Loopback);
+                    if (mAddresses.size == 0)
+                    {
+                        mAddresses.Add(IPAddress.Loopback);
+                    }
                 }
 
-                UnityEngine.Debug.Log("[Tools:networkInterfaces] 3 localAddresses Amount: " + mAddresses.Count);
+                Debug.Log("[Tools:networkInterfaces] 3 localAddresses Amount: " + mAddresses.Count);
 
                 return mAddresses;
             }
@@ -175,7 +166,7 @@ namespace LegendaryTools.Networking
         /// Default local IP address. Note that there can be more than one address in case of more than one network.
         /// </summary>
 
-        static public IPAddress localAddress
+        public static IPAddress localAddress
         {
             get
             {
@@ -194,7 +185,10 @@ namespace LegendaryTools.Networking
                             string str = addr.ToString();
 
                             // Hamachi IPs begin with 25
-                            if (str.StartsWith("25.")) continue;
+                            if (str.StartsWith("25."))
+                            {
+                                continue;
+                            }
 
                             // This is a valid address
                             mLocalAddress = addr;
@@ -202,6 +196,7 @@ namespace LegendaryTools.Networking
                         }
                     }
                 }
+
                 return mLocalAddress;
             }
             set
@@ -213,11 +208,16 @@ namespace LegendaryTools.Networking
                     //check is value is a valid address
                     ListLessGarb<IPAddress> list = localAddresses;
                     for (int i = 0; i < list.size; ++i)
+                    {
                         if (list[i] == value)
+                        {
                             return;
+                        }
+                    }
                 }
 #if UNITY_EDITOR
-                UnityEngine.Debug.LogWarning("[network system] " + value + " is not one of the local IP addresses. Strange things may happen.");
+                Debug.LogWarning("[network system] " + value +
+                                 " is not one of the local IP addresses. Strange things may happen.");
 #else
 			System.Console.WriteLine("[network system] " + value + " is not one of the local IP addresses. Strange things may happen.");
 #endif
@@ -229,41 +229,52 @@ namespace LegendaryTools.Networking
         /// Note that if the external address is not yet known, this operation may hold up the application.
         /// </summary>
 
-        static public IPAddress externalAddress
+        public static IPAddress externalAddress
         {
             get
             {
                 if (mExternalAddress == null)
+                {
                     mExternalAddress = GetExternalAddress();
+                }
+
                 return mExternalAddress != null ? mExternalAddress : localAddress;
             }
         }
 
-        public delegate void OnResolvedIPs(IPAddress local, IPAddress ext);
+        /// <summary>
+        /// Since calling "localAddress" and "externalAddress" would lock up the application, it's better to do it asynchronously.
+        /// </summary>
+        public static void ResolveIPs()
+        {
+            ResolveIPs(null);
+        }
 
         /// <summary>
         /// Since calling "localAddress" and "externalAddress" would lock up the application, it's better to do it asynchronously.
         /// </summary>
-
-        static public void ResolveIPs() { ResolveIPs(null); }
-
-        /// <summary>
-        /// Since calling "localAddress" and "externalAddress" would lock up the application, it's better to do it asynchronously.
-        /// </summary>
-
-        static public void ResolveIPs(OnResolvedIPs del)
+        public static void ResolveIPs(OnResolvedIPs del)
         {
             if (isExternalIPReliable)
             {
-                if (del != null) del(localAddress, externalAddress);
+                if (del != null)
+                {
+                    del(localAddress, externalAddress);
+                }
             }
             else
             {
-                if (mOnResolve == null) mOnResolve = ResolveDummyFunc;
+                if (mOnResolve == null)
+                {
+                    mOnResolve = ResolveDummyFunc;
+                }
 
                 lock (mOnResolve)
                 {
-                    if (del != null) mOnResolve += del;
+                    if (del != null)
+                    {
+                        mOnResolve += del;
+                    }
 
                     if (mResolveThread == null)
                     {
@@ -274,22 +285,25 @@ namespace LegendaryTools.Networking
             }
         }
 
-        static void ResolveDummyFunc(IPAddress a, IPAddress b) { }
-        static OnResolvedIPs mOnResolve;
-        static Thread mResolveThread;
+        private static void ResolveDummyFunc(IPAddress a, IPAddress b)
+        {
+        }
 
         /// <summary>
         /// Thread function that resolves IP addresses.
         /// </summary>
-
-        static void ResolveThread()
+        private static void ResolveThread()
         {
             IPAddress local = localAddress;
             IPAddress ext = externalAddress;
 
             lock (mOnResolve)
             {
-                if (mOnResolve != null) mOnResolve(local, ext);
+                if (mOnResolve != null)
+                {
+                    mOnResolve(local, ext);
+                }
+
                 mResolveThread = null;
                 mOnResolve = null;
             }
@@ -298,21 +312,38 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Determine the external IP address by accessing an external web site.
         /// </summary>
-
-        static IPAddress GetExternalAddress()
+        private static IPAddress GetExternalAddress()
         {
-            if (mExternalAddress != null) return mExternalAddress;
+            if (mExternalAddress != null)
+            {
+                return mExternalAddress;
+            }
 
 #if UNITY_WEBPLAYER
 		// HttpWebRequest.Create is not supported in the Unity web player
 		return localAddress;
 #else
-            if (ResolveExternalIP(ipCheckerUrl)) return mExternalAddress;
-            if (ResolveExternalIP("http://icanhazip.com")) return mExternalAddress;
-            if (ResolveExternalIP("http://bot.whatismyipaddress.com")) return mExternalAddress;
-            if (ResolveExternalIP("http://ipinfo.io/ip")) return mExternalAddress;
+            if (ResolveExternalIP(ipCheckerUrl))
+            {
+                return mExternalAddress;
+            }
+
+            if (ResolveExternalIP("http://icanhazip.com"))
+            {
+                return mExternalAddress;
+            }
+
+            if (ResolveExternalIP("http://bot.whatismyipaddress.com"))
+            {
+                return mExternalAddress;
+            }
+
+            if (ResolveExternalIP("http://ipinfo.io/ip"))
+            {
+                return mExternalAddress;
+            }
 #if UNITY_EDITOR
-            UnityEngine.Debug.LogWarning("Unable to resolve the external IP address via " + mChecker);
+            Debug.LogWarning("Unable to resolve the external IP address via " + mChecker);
 #endif
             return localAddress;
 #endif
@@ -321,11 +352,13 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Resolve the external IP using the specified URL.
         /// </summary>
-
-        static bool ResolveExternalIP(string url)
+        private static bool ResolveExternalIP(string url)
         {
 #if !UNITY_WINRT
-            if (string.IsNullOrEmpty(url)) return false;
+            if (string.IsNullOrEmpty(url))
+            {
+                return false;
+            }
 
             try
             {
@@ -338,7 +371,10 @@ namespace LegendaryTools.Networking
                     string[] split2 = split1[1].Trim().Split('<');
                     mExternalAddress = ResolveAddress(split2[0]);
                 }
-                else mExternalAddress = ResolveAddress(text);
+                else
+                {
+                    mExternalAddress = ResolveAddress(text);
+                }
 
                 if (mExternalAddress != null)
                 {
@@ -346,7 +382,9 @@ namespace LegendaryTools.Networking
                     return true;
                 }
             }
-            catch (System.Exception) { }
+            catch (Exception)
+            {
+            }
 #endif
             return false;
         }
@@ -354,28 +392,51 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Helper function that determines if this is a valid address.
         /// </summary>
-
-        static public bool IsValidAddress(IPAddress address)
+        public static bool IsValidAddress(IPAddress address)
         {
-            if (address.AddressFamily != AddressFamily.InterNetwork) return false;
-            if (address.Equals(IPAddress.Loopback)) return false;
-            if (address.Equals(IPAddress.None)) return false;
-            if (address.Equals(IPAddress.Any)) return false;
-            if (address.ToString().StartsWith("169.")) return false;
+            if (address.AddressFamily != AddressFamily.InterNetwork)
+            {
+                return false;
+            }
+
+            if (address.Equals(IPAddress.Loopback))
+            {
+                return false;
+            }
+
+            if (address.Equals(IPAddress.None))
+            {
+                return false;
+            }
+
+            if (address.Equals(IPAddress.Any))
+            {
+                return false;
+            }
+
+            if (address.ToString().StartsWith("169."))
+            {
+                return false;
+            }
+
             return true;
         }
 
         /// <summary>
         /// Helper function that resolves the remote address.
         /// </summary>
-
-        static public IPAddress ResolveAddress(string address)
+        public static IPAddress ResolveAddress(string address)
         {
             address = address.Trim();
             if (string.IsNullOrEmpty(address))
+            {
                 return null;
+            }
 
-            if (address == "localhost") return IPAddress.Loopback;
+            if (address == "localhost")
+            {
+                return IPAddress.Loopback;
+            }
 
             IPAddress ip;
 
@@ -386,12 +447,16 @@ namespace LegendaryTools.Networking
                 if (parts.Length == 2)
                 {
                     if (IPAddress.TryParse(parts[0], out ip))
+                    {
                         return ip;
+                    }
                 }
             }
 
             if (IPAddress.TryParse(address, out ip))
+            {
                 return ip;
+            }
 
 #if !UNITY_WINRT
             try
@@ -399,13 +464,17 @@ namespace LegendaryTools.Networking
                 IPAddress[] ips = Dns.GetHostAddresses(address);
 
                 for (int i = 0; i < ips.Length; ++i)
+                {
                     if (!IPAddress.IsLoopback(ips[i]))
+                    {
                         return ips[i];
+                    }
+                }
             }
 #if UNITY_EDITOR
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning(ex.Message + " (" + address + ")");
+                Debug.LogWarning(ex.Message + " (" + address + ")");
             }
 #else
 		catch (System.Exception) {}
@@ -417,19 +486,21 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Given the specified address and port, get the end point class.
         /// </summary>
-
-        static public IPEndPoint ResolveEndPoint(string address, int port)
+        public static IPEndPoint ResolveEndPoint(string address, int port)
         {
             IPEndPoint ip = ResolveEndPoint(address);
-            if (ip != null) ip.Port = port;
+            if (ip != null)
+            {
+                ip.Port = port;
+            }
+
             return ip;
         }
 
         /// <summary>
         /// Given the specified address, get the end point class.
         /// </summary>
-
-        static public IPEndPoint ResolveEndPoint(string address)
+        public static IPEndPoint ResolveEndPoint(string address)
         {
             int port = 0;
             string[] split = address.Split(':');
@@ -442,27 +513,33 @@ namespace LegendaryTools.Networking
             }
 
             IPAddress ad = ResolveAddress(address);
-            return (ad != null) ? new IPEndPoint(ad, port) : null;
+            return ad != null ? new IPEndPoint(ad, port) : null;
         }
 
         /// <summary>
         /// Converts 192.168.1.1 to 192.168.1.
         /// </summary>
-
-        static public string GetSubnet(IPAddress ip)
+        public static string GetSubnet(IPAddress ip)
         {
-            if (ip == null) return null;
+            if (ip == null)
+            {
+                return null;
+            }
+
             string addr = ip.ToString();
             int last = addr.LastIndexOf('.');
-            if (last == -1) return null;
+            if (last == -1)
+            {
+                return null;
+            }
+
             return addr.Substring(0, last);
         }
 
         /// <summary>
         /// Helper function that returns the response of the specified web request.
         /// </summary>
-
-        static public string GetResponse(WebRequest request)
+        public static string GetResponse(WebRequest request)
         {
             string response = "";
 
@@ -476,34 +553,39 @@ namespace LegendaryTools.Networking
                 for (;;)
                 {
                     int count = stream.Read(bytes, 0, bytes.Length);
-                    if (count > 0) response += Encoding.ASCII.GetString(bytes, 0, count);
-                    else break;
+                    if (count > 0)
+                    {
+                        response += Encoding.ASCII.GetString(bytes, 0, count);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
-            catch (System.Exception)
+            catch (Exception)
             {
                 return null;
             }
+
             return response;
         }
 
         /// <summary>
         /// Serialize the IP end point.
         /// </summary>
-
-        static public void Serialize(BinaryWriter writer, IPEndPoint ip)
+        public static void Serialize(BinaryWriter writer, IPEndPoint ip)
         {
             byte[] bytes = ip.Address.GetAddressBytes();
-            writer.Write((byte)bytes.Length);
+            writer.Write((byte) bytes.Length);
             writer.Write(bytes);
-            writer.Write((ushort)ip.Port);
+            writer.Write((ushort) ip.Port);
         }
 
         /// <summary>
         /// Deserialize the IP end point.
         /// </summary>
-
-        static public void Serialize(BinaryReader reader, out IPEndPoint ip)
+        public static void Serialize(BinaryReader reader, out IPEndPoint ip)
         {
             byte[] bytes = reader.ReadBytes(reader.ReadByte());
             int port = reader.ReadUInt16();
@@ -513,38 +595,43 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Write the channel's data into the specified writer.
         /// </summary>
-
-        static public void Serialize (BinaryWriter writer, byte[] data)
+        public static void Serialize(BinaryWriter writer, byte[] data)
         {
-            int count = (data != null) ? data.Length : 0;
+            int count = data != null ? data.Length : 0;
 
             if (count < 255)
             {
-                writer.Write((byte)count);
+                writer.Write((byte) count);
             }
             else
             {
-                writer.Write((byte)255);
+                writer.Write((byte) 255);
                 writer.Write(count);
             }
-            if (count > 0) writer.Write(data);
+
+            if (count > 0)
+            {
+                writer.Write(data);
+            }
         }
 
         /// <summary>
         /// Read the channel's data from the specified reader.
         /// </summary>
-
-        static public void Serialize (BinaryReader reader, out byte[] data)
+        public static void Serialize(BinaryReader reader, out byte[] data)
         {
             int count = reader.ReadByte();
-            if (count == 255) count = reader.ReadInt32();
-            data = (count > 0) ? reader.ReadBytes(count) : null;
+            if (count == 255)
+            {
+                count = reader.ReadInt32();
+            }
+
+            data = count > 0 ? reader.ReadBytes(count) : null;
         }
 
         /// <summary>
         /// Deserialize the IP end point.
         /// </summary>
-
         public static void Deserialize(BinaryReader reader, out IPEndPoint ip)
         {
             byte[] bytes = reader.ReadBytes(reader.ReadByte());
@@ -555,71 +642,83 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Retrieve the list of filenames from the specified directory.
         /// </summary>
-
-        static public string[] GetFiles(string directory, bool inMyDocuments = false)
+        public static string[] GetFiles(string directory, bool inMyDocuments = false)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_METRO && !UNITY_WP8 && !UNITY_WP_8_1
             try
             {
-                if (inMyDocuments) directory = GetDocumentsPath(directory);
-                if (!Directory.Exists(directory)) return null;
+                if (inMyDocuments)
+                {
+                    directory = GetDocumentsPath(directory);
+                }
+
+                if (!Directory.Exists(directory))
+                {
+                    return null;
+                }
+
                 return Directory.GetFiles(directory);
             }
-            catch (System.Exception) { }
+            catch (Exception)
+            {
+            }
 #endif
             return null;
         }
 
         /// <summary>
-        /// Application directory to use in My Documents. Generally should be the name of your game.
-        /// </summary>
-
-        static public string applicationDirectory = null;
-
-        /// <summary>
         /// Write the specified file, creating all the subdirectories in the process.
         /// </summary>
-
-        static public bool WriteFile(string path, byte[] data, bool inMyDocuments = false)
+        public static bool WriteFile(string path, byte[] data, bool inMyDocuments = false)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_METRO && !UNITY_WP8 && !UNITY_WP_8_1
             if (data == null || data.Length == 0)
             {
                 return DeleteFile(path);
             }
-            else
+
+            try
             {
-                try
+                if (inMyDocuments)
                 {
-                    if (inMyDocuments) path = GetDocumentsPath(path);
-                    string dir = Path.GetDirectoryName(path);
-
-                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                        Directory.CreateDirectory(dir);
-
-                    if (File.Exists(path))
-                    {
-                        FileAttributes att = File.GetAttributes(path);
-
-                        if ((att & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
-                        {
-                            att = (att & ~FileAttributes.ReadOnly);
-                            File.SetAttributes(path, att);
-                        }
-                    }
-
-                    File.WriteAllBytes(path, data);
-                    if (File.Exists(path)) return true;
-#if !STANDALONE
-                    UnityEngine.Debug.LogWarning("Unable to write " + path);
-#endif
+                    path = GetDocumentsPath(path);
                 }
+
+                string dir = Path.GetDirectoryName(path);
+
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                if (File.Exists(path))
+                {
+                    FileAttributes att = File.GetAttributes(path);
+
+                    if ((att & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                    {
+                        att = att & ~FileAttributes.ReadOnly;
+                        File.SetAttributes(path, att);
+                    }
+                }
+
+                File.WriteAllBytes(path, data);
+                if (File.Exists(path))
+                {
+                    return true;
+                }
+#if !STANDALONE
+                Debug.LogWarning("Unable to write " + path);
+#endif
+            }
 #if STANDALONE
 			catch (System.Exception) { }
 #else
-                catch (System.Exception ex) { UnityEngine.Debug.LogError(ex.Message); }
-#endif
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
             }
+#endif
 #endif
             return false;
         }
@@ -627,20 +726,24 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Read the specified file, returning all bytes read.
         /// </summary>
-
-        static public byte[] ReadFile(string path)
+        public static byte[] ReadFile(string path)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_WINRT
             try
             {
                 path = FindFile(path);
                 if (!string.IsNullOrEmpty(path))
+                {
                     return File.ReadAllBytes(path);
+                }
             }
 #if STANDALONE
 		catch (System.Exception) { }
 #else
-            catch (System.Exception ex) { UnityEngine.Debug.LogError(ex.Message); }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
+            }
 #endif
 #endif
             return null;
@@ -649,18 +752,22 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Delete the specified file, if it exists.
         /// </summary>
-
-        static public bool DeleteFile(string path)
+        public static bool DeleteFile(string path)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_METRO && !UNITY_WP8 && !UNITY_WP_8_1
             try
             {
                 path = FindFile(path);
                 if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                {
                     File.Delete(path);
+                }
+
                 return true;
             }
-            catch (System.Exception) { }
+            catch (Exception)
+            {
+            }
 #endif
             return false;
         }
@@ -668,12 +775,15 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Gets the path to a file in My Documents or OSX equivalent.
         /// </summary>
-
-        static public string GetDocumentsPath(string path = null)
+        public static string GetDocumentsPath(string path = null)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_METRO && !UNITY_WP8 && !UNITY_WP_8_1
-            string docs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
-            if (!string.IsNullOrEmpty(applicationDirectory)) docs = Path.Combine(docs, applicationDirectory);
+            string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrEmpty(applicationDirectory))
+            {
+                docs = Path.Combine(docs, applicationDirectory);
+            }
+
             return string.IsNullOrEmpty(path) ? docs : Path.Combine(docs, path);
 #else
 		return path;
@@ -684,20 +794,66 @@ namespace LegendaryTools.Networking
         /// Tries to find the specified file, checking the raw path, My Documents folder, and the application folder.
         /// Returns the path if found, null if not found.
         /// </summary>
-
-        static public string FindFile(string path)
+        public static string FindFile(string path)
         {
 #if !UNITY_WEBPLAYER && !UNITY_FLASH && !UNITY_METRO && !UNITY_WP8 && !UNITY_WP_8_1
             try
             {
-                if (string.IsNullOrEmpty(path)) return null;
-                if (File.Exists(path)) return path;
+                if (string.IsNullOrEmpty(path))
+                {
+                    return null;
+                }
+
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+
                 path = GetDocumentsPath(path);
-                if (File.Exists(path)) return path;
+                if (File.Exists(path))
+                {
+                    return path;
+                }
             }
-            catch (System.Exception) { }
+            catch (Exception)
+            {
+            }
 #endif
             return null;
         }
+
+#if !UNITY_WEBPLAYER && !UNITY_WINRT
+        private static ListLessGarb<NetworkInterface> mInterfaces;
+
+        /// <summary>
+        /// Return the list of operational network interfaces.
+        /// </summary>
+
+        public static ListLessGarb<NetworkInterface> networkInterfaces
+        {
+            get
+            {
+                if (mInterfaces == null)
+                {
+                    mInterfaces = new ListLessGarb<NetworkInterface>();
+                    NetworkInterface[] list = NetworkInterface.GetAllNetworkInterfaces();
+
+                    foreach (NetworkInterface ni in list)
+                    {
+                        if (ni.Supports(NetworkInterfaceComponent.IPv4) &&
+                            (ni.OperationalStatus == OperationalStatus.Up ||
+                             ni.OperationalStatus == OperationalStatus.Unknown))
+                        {
+                            mInterfaces.Add(ni);
+                        }
+                    }
+                }
+
+                Debug.Log("[Tools:networkInterfaces] Amount: " + mInterfaces.Count);
+
+                return mInterfaces;
+            }
+        }
+#endif
     }
 }

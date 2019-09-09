@@ -1,17 +1,16 @@
 ﻿using System.Collections;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LegendaryTools.UI
 {
-    [ExecuteInEditMode]
-    [RequireComponent(typeof(Image))]
-    [AddComponentMenu("UI/Localize Image")]
+    [ExecuteInEditMode, RequireComponent(typeof(Image)), AddComponentMenu("UI/Localize Image")]
     public class ImageLocalize : BaseLocalize
     {
         public Image Image;
         private Coroutine loadTextureRoutine;
-        
+
         protected override void Start()
         {
             base.Start();
@@ -32,27 +31,44 @@ namespace LegendaryTools.UI
 
         public override void Localize(string value)
         {
-            if (string.IsNullOrEmpty(key)) return;
-            if (Image == null)
-                Image = GetComponent<Image>();
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
 
-            if (Image == null) return;
-            
+            if (Image == null)
+            {
+                Image = GetComponent<Image>();
+            }
+
+            if (Image == null)
+            {
+                return;
+            }
+
             if (!string.IsNullOrEmpty(value))
+            {
                 loadTextureRoutine = StartCoroutine(LoadTexture(value));
+            }
         }
 
-        IEnumerator LoadTexture(string path)
+        private IEnumerator LoadTexture(string path)
         {
             ResourceRequest request = Resources.LoadAsync<Sprite>(path);
             yield return request;
 
-            if (request.asset == null) yield break;
+            if (request.asset == null)
+            {
+                yield break;
+            }
+
             Image.sprite = request.asset as Sprite;
 
 #if UNITY_EDITOR
             if (!Application.isPlaying)
-                UnityEditor.EditorUtility.SetDirty(this);
+            {
+                EditorUtility.SetDirty(this);
+            }
 #endif
         }
     }

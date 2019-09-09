@@ -1,42 +1,33 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using System;
 
 namespace LegendaryTools
 {
     public class PoolObject<T>
     {
-        public static PoolObject<T> Instance = null;
+        public static PoolObject<T> Instance;
+        protected List<T> ActiveInstances = new List<T>();
+        protected List<T> InactiveInstances = new List<T>();
 
         protected List<T> Instances = new List<T>();
-        protected List<T> InactiveInstances = new List<T>();
-        protected List<T> ActiveInstances = new List<T>();
-
-        public int ActiveCount
-        {
-            get { return ActiveInstances.Count; }
-        }
-
-        public int InactiveCount
-        {
-            get { return InactiveInstances.Count; }
-        }
-
-        public int TotalCount
-        {
-            get { return ActiveCount + InactiveCount; }
-        }
 
         public PoolObject()
         {
             Instance = this;
         }
 
+        public int ActiveCount => ActiveInstances.Count;
+
+        public int InactiveCount => InactiveInstances.Count;
+
+        public int TotalCount => ActiveCount + InactiveCount;
+
         public virtual T Create()
         {
-            T newObject = default(T);
+            T newObject = default;
 
-            if(InactiveInstances.Count > 0)
+            if (InactiveInstances.Count > 0)
             {
                 newObject = InactiveInstances[0];
                 InactiveInstances.RemoveAt(0);
@@ -47,13 +38,17 @@ namespace LegendaryTools
                 Instances.Add(newObject);
 
                 if (newObject is IPoolable)
+                {
                     (newObject as IPoolable).OnConstruct();
+                }
             }
 
             ActiveInstances.Add(newObject);
 
             if (newObject is IPoolable)
+            {
                 (newObject as IPoolable).OnCreate();
+            }
 
             return newObject;
         }
@@ -75,13 +70,19 @@ namespace LegendaryTools
                     InactiveInstances.Add(instance);
 
                     if (instance is IPoolable)
+                    {
                         (instance as IPoolable).OnRecycle();
+                    }
                 }
                 else
+                {
                     Debug.LogWarning("[PoolObject:Recycle()] -> ActiveInstance does not contains the instance.");
+                }
             }
             else
+            {
                 Debug.LogWarning("[PoolObject:Recycle()] -> Instance cannot be null.");
+            }
         }
 
         protected virtual T NewObject()
@@ -97,8 +98,10 @@ namespace LegendaryTools
 
         public static T CreateObject()
         {
-            if(Instance == null)
+            if (Instance == null)
+            {
                 Instance = new PoolObject<T>();
+            }
 
             return Instance.Create();
         }
@@ -106,7 +109,9 @@ namespace LegendaryTools
         public static void RecycleObject(T instance)
         {
             if (Instance != null)
+            {
                 Instance.Recycle(instance);
+            }
         }
     }
 }

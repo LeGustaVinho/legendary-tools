@@ -1,6 +1,5 @@
-﻿using UnityEngine;
-using System.Collections;
-using UnityEditor;
+﻿using UnityEditor;
+using UnityEngine;
 
 namespace LegendaryTools.Editor
 {
@@ -14,6 +13,7 @@ namespace LegendaryTools.Editor
                 Debug.LogError("Select an object to ping");
                 return;
             }
+
             EditorGUIUtility.PingObject(Selection.activeObject);
         }
     }

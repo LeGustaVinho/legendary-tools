@@ -1,15 +1,14 @@
-using UnityEngine;
-using UnityEditor;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEditor;
+using UnityEngine;
 
 namespace LegendaryTools.Inspector
 {
     /// <summary>
     /// Generic property binding drawer.
     /// </summary>
-
 #if !UNITY_3_5
     [CustomPropertyDrawer(typeof(PropertyBindingReference))]
     public class PropertyBindingReferenceDrawer : PropertyDrawer
@@ -19,39 +18,34 @@ public class PropertyReferenceDrawer
     {
         public class ComponentReference
         {
-            public Component target;
             public string name;
+            public Component target;
         }
 
         /// <summary>
         /// If you want the property drawer to limit its selection list to values of specified type, set this to something other than 'void'.
         /// </summary>
-
-        static public Type filter = typeof(void);
+        public static Type filter = typeof(void);
 
         /// <summary>
         /// Whether it's possible to convert between basic types, such as int to string.
         /// </summary>
-
-        static public bool canConvert = true;
+        public static bool canConvert = true;
 
         /// <summary>
         /// Whether the property should be readable. Used to filter the property selection list.
         /// </summary>
-
-        static public bool mustRead = false;
+        public static bool mustRead = false;
 
         /// <summary>
         /// Whether the property should be writable. Used to filter the property selection list.
         /// </summary>
-
-        static public bool mustWrite = false;
+        public static bool mustWrite = false;
 
         /// <summary>
         /// Collect a list of usable properties and fields.
         /// </summary>
-
-        static public List<ComponentReference> GetProperties(GameObject target, bool read, bool write)
+        public static List<ComponentReference> GetProperties(GameObject target, bool read, bool write)
         {
             Component[] comps = target.GetComponents<Component>();
 
@@ -60,7 +54,10 @@ public class PropertyReferenceDrawer
             for (int i = 0, imax = comps.Length; i < imax; ++i)
             {
                 Component comp = comps[i];
-                if (comp == null) continue;
+                if (comp == null)
+                {
+                    continue;
+                }
 
                 Type type = comp.GetType();
                 BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
@@ -83,9 +80,15 @@ public class PropertyReferenceDrawer
                     {
                         if (canConvert)
                         {
-                            if (!PropertyBindingReference.Convert(field.FieldType, filter)) continue;
+                            if (!PropertyBindingReference.Convert(field.FieldType, filter))
+                            {
+                                continue;
+                            }
                         }
-                        else if (!filter.IsAssignableFrom(field.FieldType)) continue;
+                        else if (!filter.IsAssignableFrom(field.FieldType))
+                        {
+                            continue;
+                        }
                     }
 
                     ComponentReference ent = new ComponentReference();
@@ -97,16 +100,29 @@ public class PropertyReferenceDrawer
                 for (int b = 0; b < props.Length; ++b)
                 {
                     PropertyInfo prop = props[b];
-                    if (read && !prop.CanRead) continue;
-                    if (write && !prop.CanWrite) continue;
+                    if (read && !prop.CanRead)
+                    {
+                        continue;
+                    }
+
+                    if (write && !prop.CanWrite)
+                    {
+                        continue;
+                    }
 
                     if (filter != typeof(void))
                     {
                         if (canConvert)
                         {
-                            if (!PropertyBindingReference.Convert(prop.PropertyType, filter)) continue;
+                            if (!PropertyBindingReference.Convert(prop.PropertyType, filter))
+                            {
+                                continue;
+                            }
                         }
-                        else if (!filter.IsAssignableFrom(prop.PropertyType)) continue;
+                        else if (!filter.IsAssignableFrom(prop.PropertyType))
+                        {
+                            continue;
+                        }
                     }
 
                     ComponentReference ent = new ComponentReference();
@@ -115,45 +131,46 @@ public class PropertyReferenceDrawer
                     list.Add(ent);
                 }
             }
+
             return list;
         }
 
         /// <summary>
         /// Convert the specified list of delegate entries into a string array.
         /// </summary>
-
-        static public string[] GetNames(List<ComponentReference> list, string choice, out int index)
+        public static string[] GetNames(List<ComponentReference> list, string choice, out int index)
         {
             index = 0;
             string[] names = new string[list.Count + 1];
             names[0] = string.IsNullOrEmpty(choice) ? "<Choose>" : choice;
 
-            for (int i = 0; i < list.Count; )
+            for (int i = 0; i < list.Count;)
             {
                 ComponentReference ent = list[i];
                 string del = ActionDelegateEditor.GetFuncName(ent.target, ent.name);
                 names[++i] = del;
                 if (index == 0 && string.Equals(del, choice))
+                {
                     index = i;
+                }
             }
+
             return names;
         }
 
         /// <summary>
         /// The property is either going to be 16 or 34 pixels tall, depending on whether the target has been set or not.
         /// </summary>
-
         public override float GetPropertyHeight(SerializedProperty prop, GUIContent label)
         {
             SerializedProperty target = prop.FindPropertyRelative("mTarget");
             Component comp = target.objectReferenceValue as Component;
-            return (comp != null) ? 36f : 16f;
+            return comp != null ? 36f : 16f;
         }
 
         /// <summary>
         /// Draw the actual property.
         /// </summary>
-
         public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
         {
             SerializedProperty target = prop.FindPropertyRelative("mTarget");
@@ -175,10 +192,11 @@ public class PropertyReferenceDrawer
                 List<ComponentReference> list = GetProperties(comp.gameObject, mustRead, mustWrite);
 
                 // We want the field to look like "Component.property" rather than just "property"
-                string current = PropertyBindingReference.ToString(target.objectReferenceValue as Component, field.stringValue);
+                string current =
+                    PropertyBindingReference.ToString(target.objectReferenceValue as Component, field.stringValue);
 
                 // Convert all the properties to names
-                string[] names = PropertyBindingReferenceDrawer.GetNames(list, current, out index);
+                string[] names = GetNames(list, current, out index);
 
                 // Draw a selection list
                 GUI.changed = false;
@@ -193,6 +211,7 @@ public class PropertyReferenceDrawer
                     target.objectReferenceValue = ent.target;
                     field.stringValue = ent.name;
                 }
+
                 EditorGUI.EndDisabledGroup();
             }
         }

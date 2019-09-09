@@ -1,11 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace LegendaryTools
+﻿namespace LegendaryTools
 {
-    public static class StringExtension 
+    public static class StringExtension
     {
-        
     }
 }

@@ -17,48 +17,24 @@ namespace LegendaryTools.Graph
 
         N[] Neighbours(N node);
     }
-    
+
     public abstract class LinkedGraph<G, N, NC, C> : HierarchicalGraph<G, N>, IGraph<N>, ICollection<N>
         where G : LinkedGraph<G, N, NC, C>
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
     {
-        public int Count => allNodes.Count;
-        public bool IsReadOnly => false;
-
         protected readonly List<N> allNodes = new List<N>();
 
-        public event Action<N> OnNodeAdd;
-        public event Action<N> OnNodeRemove;
-        
-        public LinkedGraph() : base()
+        public LinkedGraph()
         {
-            
         }
-        
+
         public LinkedGraph(N parentNode) : base(parentNode)
         {
-            
         }
-        
-        public abstract NC CreateConnection(N @from, N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0);
-        
-        public virtual void Add(N newNode)
-        {
-            if (!allNodes.Contains(newNode))
-            {
-                newNode.Owner = this as G;
-                allNodes.Add(newNode);
-                OnNodeAdd?.Invoke(newNode);
 
-                if (StartOrRootNode == null)
-                    StartOrRootNode = newNode;
-            }
-            else
-            {
-                Debug.LogError("[HierarchicalGraph:Add()] -> Already contains this node.");
-            }
-        }
+        public int Count => allNodes.Count;
+        public bool IsReadOnly => false;
 
         public void Clear()
         {
@@ -68,6 +44,35 @@ namespace LegendaryTools.Graph
         public void CopyTo(N[] array, int arrayIndex)
         {
             allNodes.CopyTo(array, arrayIndex);
+        }
+
+        public IEnumerator<N> GetEnumerator()
+        {
+            return allNodes.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public virtual void Add(N newNode)
+        {
+            if (!allNodes.Contains(newNode))
+            {
+                newNode.Owner = this as G;
+                allNodes.Add(newNode);
+                OnNodeAdd?.Invoke(newNode);
+
+                if (StartOrRootNode == null)
+                {
+                    StartOrRootNode = newNode;
+                }
+            }
+            else
+            {
+                Debug.LogError("[HierarchicalGraph:Add()] -> Already contains this node.");
+            }
         }
 
         public virtual bool Remove(N node)
@@ -82,29 +87,25 @@ namespace LegendaryTools.Graph
             return allNodes.Contains(node);
         }
 
-        public N Find(Predicate<N> predicate)
-        {
-            return allNodes.Find(predicate);
-        }
-        
-        public List<N> FindAll(Predicate<N> predicate)
-        {
-            return allNodes.FindAll(predicate);
-        }
-
         public N[] Neighbours(N node)
         {
             return node.Neighbours;
         }
 
-        public IEnumerator<N> GetEnumerator()
+        public event Action<N> OnNodeAdd;
+        public event Action<N> OnNodeRemove;
+
+        public abstract NC CreateConnection(N from, N to, C context,
+            NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0);
+
+        public N Find(Predicate<N> predicate)
         {
-            return allNodes.GetEnumerator();
+            return allNodes.Find(predicate);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        public List<N> FindAll(Predicate<N> predicate)
         {
-            return GetEnumerator();
+            return allNodes.FindAll(predicate);
         }
 
         public override string ToString()
@@ -116,7 +117,7 @@ namespace LegendaryTools.Graph
         {
             OnNodeAdd?.Invoke(node);
         }
-        
+
         protected void invokeOnNodeRemoveEvent(N node)
         {
             OnNodeRemove?.Invoke(node);

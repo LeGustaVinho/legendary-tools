@@ -7,7 +7,7 @@ namespace LegendaryTools.Grid
         public enum WorldPlane
         {
             XY,
-            XZ,
+            XZ
         }
 
         public readonly WorldPlane Plane;

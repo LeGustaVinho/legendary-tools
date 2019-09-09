@@ -7,7 +7,7 @@ namespace LegendaryTools.Systems
     public enum AttributeType
     {
         Attribute,
-        Modifier,
+        Modifier
     }
 
     public enum AttributeModOperator
@@ -19,58 +19,62 @@ namespace LegendaryTools.Systems
         LessOrEquals,
         NotEquals,
         ContainsFlag,
-        NotContainsFlag,
+        NotContainsFlag
     }
 
     public enum AttributeFlagModOperator
     {
         AddFlag,
         RemoveFlag,
-        Set,
+        Set
     }
-    
+
     public class Attribute<T>
     {
-        public AttributeSystem<T> Parent { get; protected set; }
-        public AttributeConfig<T> Config { get; protected set; }
-        
-        public AttributeType Type = AttributeType.Attribute;
-
-        public float Flat;
-        public float Factor = 0;
-
-        /// Returns the current value of the attribute taking into account all modifiers currently applied
-        public float Value => getValueWithModifiers();
-
         /// Lists all modifiers that are currently changing this attribute
         public readonly List<Attribute<T>> Modifiers = new List<Attribute<T>>();
-        
+
+        public float Capacity;
+        public float Factor = 0;
+
+        public AttributeFlagModOperator FlagOperator = AttributeFlagModOperator.AddFlag;
+
+        public float Flat;
+
         /// List the conditions that this modifier needs to find to be applied
         public List<AttributeCondition<T>> TargetAttributeModifier = new List<AttributeCondition<T>>();
-        
-        public float Capacity;
 
-        public event Action<Attribute<T>> OnAttributeModAdd;
-        public event Action<Attribute<T>> OnAttributeModRemove;
-        public event Action<float, float> OnAttributeCapacityChange;
-        
+        public AttributeType Type = AttributeType.Attribute;
+
         public Attribute(AttributeSystem<T> parent, AttributeConfig<T> config)
         {
             Parent = parent;
             Config = config;
         }
-       
-        public AttributeFlagModOperator FlagOperator = AttributeFlagModOperator.AddFlag;
-        
+
+        public AttributeSystem<T> Parent { get; protected set; }
+        public AttributeConfig<T> Config { get; protected set; }
+
+        /// Returns the current value of the attribute taking into account all modifiers currently applied
+        public float Value => getValueWithModifiers();
+
         private bool CanUseCapacity => HasCapacity && Type == AttributeType.Attribute && !HasFlags;
 
         private bool HasFlags => Config?.HasFlags ?? false;
 
         private bool HasCapacity => Config?.HasCapacity ?? false;
 
+        public event Action<Attribute<T>> OnAttributeModAdd;
+        public event Action<Attribute<T>> OnAttributeModRemove;
+        public event Action<float, float> OnAttributeCapacityChange;
+
         public void AddModifier(Attribute<T> attribute, AttributeCondition<T> modifier = null)
         {
-            if (!ModApplicationCanBeAccepted(attribute, modifier)) return;
+            if (!ModApplicationCanBeAccepted(attribute, modifier))
+            {
+                return;
+            }
+
             Modifiers.Add(attribute);
 
             OnAttributeModAdd?.Invoke(attribute);
@@ -78,8 +82,11 @@ namespace LegendaryTools.Systems
 
         public void RemoveModifier(Attribute<T> attribute)
         {
-            if (!Modifiers.Contains(attribute)) return;
-            
+            if (!Modifiers.Contains(attribute))
+            {
+                return;
+            }
+
             Modifiers.Remove(attribute);
 
             OnAttributeModRemove?.Invoke(attribute);
@@ -99,21 +106,34 @@ namespace LegendaryTools.Systems
 
         public bool CapacityAdd(float valueToAdd)
         {
-            if (!CanUseCapacity) return false;
-            if (!Config.AllowExceedCapacity && !(Capacity + valueToAdd <= Value)) return false;
-                
+            if (!CanUseCapacity)
+            {
+                return false;
+            }
+
+            if (!Config.AllowExceedCapacity && !(Capacity + valueToAdd <= Value))
+            {
+                return false;
+            }
+
             Capacity += valueToAdd;
             OnAttributeCapacityChange?.Invoke(Capacity, Capacity - valueToAdd);
 
             return true;
-
         }
 
         public bool CapacityRemove(float valueToRemove)
         {
-            if (!CanUseCapacity) return false;
-            if (!(Capacity - valueToRemove >= Config.MinCapacity)) return false;
-            
+            if (!CanUseCapacity)
+            {
+                return false;
+            }
+
+            if (!(Capacity - valueToRemove >= Config.MinCapacity))
+            {
+                return false;
+            }
+
             Capacity -= valueToRemove;
             OnAttributeCapacityChange?.Invoke(Capacity, Capacity + valueToRemove);
 
@@ -122,9 +142,11 @@ namespace LegendaryTools.Systems
 
         /// Checks whether the mod can be applied to the target entity
         public bool ModApplicationCanBeAccepted(Attribute<T> attribute, AttributeCondition<T> modifier = null)
-        {      
+        {
             if (modifier == null)
+            {
                 modifier = attribute.TargetAttributeModifier.Find(item => item.TargetAttributeID.Equals(Config.ID));
+            }
 
             if (modifier != null)
             {
@@ -136,35 +158,59 @@ namespace LegendaryTools.Systems
                     {
                         case AttributeModOperator.Equals:
                             if (!(currentAttribute.Value == modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.Greater:
                             if (!(currentAttribute.Value > modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.Less:
                             if (!(currentAttribute.Value < modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.GreaterOrEquals:
                             if (!(currentAttribute.Value >= modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.LessOrEquals:
                             if (!(currentAttribute.Value <= modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.NotEquals:
                             if (!(currentAttribute.Value != modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.ContainsFlag:
-                            if (!(FlagUtil.Has(currentAttribute.Value, modifier.ModApplicationConditions[i].Value)))
+                            if (!FlagUtil.Has(currentAttribute.Value, modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                         case AttributeModOperator.NotContainsFlag:
                             if (FlagUtil.Has(currentAttribute.Value, modifier.ModApplicationConditions[i].Value))
+                            {
                                 return false;
+                            }
+
                             break;
                     }
                 }
@@ -173,14 +219,16 @@ namespace LegendaryTools.Systems
             }
 
             return false;
-
         }
 
         /// Returns the current value of the attribute taking into account all modifiers currently applied
         private float getValueWithModifiers()
         {
-            if (Config == null) return 0;
-            
+            if (Config == null)
+            {
+                return 0;
+            }
+
             if (HasFlags)
             {
                 float currentFlag = Flat;
@@ -211,11 +259,15 @@ namespace LegendaryTools.Systems
                 totalFlat += Modifiers[i].Flat;
 
                 if (Config.HasStackPenault)
+                {
                     totalFactor += Modifiers[i].Factor *
                                    Config.StackPenaults[
                                        Mathf.Clamp(i, 0, Config.StackPenaults.Length - 1)];
+                }
                 else
+                {
                     totalFactor += Modifiers[i].Factor;
+                }
             }
 
             return Mathf.Clamp((Flat + totalFlat) * (1 + Factor + totalFactor),

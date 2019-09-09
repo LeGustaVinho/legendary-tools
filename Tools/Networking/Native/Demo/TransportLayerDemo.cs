@@ -1,24 +1,21 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using LegendaryTools;
-using LegendaryTools.Networking;
-using System.IO;
+﻿using System.IO;
 using System.Net;
+using LegendaryTools.Networking;
+using UnityEngine;
 
-public class TransportLayerDemo : MonoBehaviour 
+public class TransportLayerDemo : MonoBehaviour
 {
-    public bool isServer;
     public bool isReliable;
-    public int stringSize = 1;
-    public int TCPPort;
-    public int UDPPort;
+    public bool isServer;
     public string ServerExternalIP;
     public string ServerInternalIP;
+    public int stringSize = 1;
+    public int TCPPort;
+    private TcpProtocol TcpProtocol = new TcpProtocol();
+    public int UDPPort;
 
-    UdpProtocol UdpProtocol = new UdpProtocol();
-    TcpProtocol TcpProtocol = new TcpProtocol();
-    UPnP upnp = new UPnP();
+    private UdpProtocol UdpProtocol = new UdpProtocol();
+    private UPnP upnp = new UPnP();
 
     private void OnPacketReceived2(Buffer buffer, IPEndPoint source)
     {
@@ -40,12 +37,14 @@ public class TransportLayerDemo : MonoBehaviour
         buffer.Recycle();
     }
 
-    string BigString()
+    private string BigString()
     {
         string result = string.Empty;
 
         for (int i = 0; i < stringSize; i++)
+        {
             result += "A";
+        }
 
         return result;
     }
@@ -62,13 +61,19 @@ public class TransportLayerDemo : MonoBehaviour
         Debug.Log("Buffer size: " + buffer.size);
 
         if (!isReliable)
-			UdpProtocol.Send(buffer, NetworkUtility.ResolveEndPoint(ServerExternalIP, UDPPort));
+        {
+            UdpProtocol.Send(buffer, NetworkUtility.ResolveEndPoint(ServerExternalIP, UDPPort));
+        }
         else
         {
             if (!isServer)
+            {
                 TcpProtocol.SendTcpPacket(buffer);
+            }
             else
+            {
                 TcpProtocol.SendToClient(0, buffer);
+            }
         }
     }
 
@@ -77,7 +82,8 @@ public class TransportLayerDemo : MonoBehaviour
         if (!isServer)
         {
             TcpProtocol.OnClientPacketReceived += OnPacketReceived2;
-            TcpProtocol.Connect(NetworkUtility.ResolveEndPoint(ServerExternalIP, TCPPort), NetworkUtility.ResolveEndPoint(ServerInternalIP, TCPPort));
+            TcpProtocol.Connect(NetworkUtility.ResolveEndPoint(ServerExternalIP, TCPPort),
+                NetworkUtility.ResolveEndPoint(ServerInternalIP, TCPPort));
         }
     }
 
@@ -98,26 +104,26 @@ public class TransportLayerDemo : MonoBehaviour
         upnp.OpenUDP(UDPPort);
     }
 
-    void OnMessageReceived(string message)
+    private void OnMessageReceived(string message)
     {
         Debug.Log("OnMessageReceived: " + message);
     }
 
-    void Update()
+    private void Update()
     {
         //TCP
         //TcpProtocol.UpdateListener();
         //TcpProtocol.UpdateClient();
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
         TcpProtocol.Disconnect();
         UdpProtocol.Stop();
         upnp.Close();
     }
 
-    void OnApplicationQuit()
+    private void OnApplicationQuit()
     {
         TcpProtocol.Disconnect();
         UdpProtocol.Stop();

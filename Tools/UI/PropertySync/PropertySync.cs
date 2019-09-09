@@ -1,3 +1,4 @@
+using LegendaryTools.Inspector;
 using UnityEngine;
 
 namespace LegendaryTools.UI
@@ -5,101 +6,121 @@ namespace LegendaryTools.UI
     /// <summary>
     /// Property binding lets you bind two fields or properties so that changing one will update the other.
     /// </summary>
-
-    [ExecuteInEditMode]
-    [AddComponentMenu("UI/Binding/Property Sync")]
+    [ExecuteInEditMode, AddComponentMenu("UI/Binding/Property Sync")]
     public class PropertySync : MonoBehaviour
     {
+        public enum Direction
+        {
+            SourceUpdatesTarget,
+            TargetUpdatesSource,
+            BiDirectional
+        }
+
         public enum UpdateCondition
         {
             OnStart,
             OnUpdate,
             OnLateUpdate,
-            OnFixedUpdate,
+            OnFixedUpdate
         }
-
-        public enum Direction
-        {
-            SourceUpdatesTarget,
-            TargetUpdatesSource,
-            BiDirectional,
-        }
-
-        /// <summary>
-        /// First property reference.
-        /// </summary>
-
-        public LegendaryTools.Inspector.PropertyBindingReference source;
-
-        /// <summary>
-        /// Second property reference.
-        /// </summary>
-
-        public LegendaryTools.Inspector.PropertyBindingReference target;
 
         /// <summary>
         /// Direction of updates.
         /// </summary>
-
         public Direction direction = Direction.SourceUpdatesTarget;
-
-        /// <summary>
-        /// When the property update will occur.
-        /// </summary>
-
-        public UpdateCondition update = UpdateCondition.OnUpdate;
 
         /// <summary>
         /// Whether the values will update while in edit mode.
         /// </summary>
-
         public bool editMode = true;
-		
-		public bool invertBool = false;
+
+        public bool invertBool;
 
         // Cached value from the last update, used to see which property changes for bi-directional updates.
-        object mLastValue = null;
+        private object mLastValue;
 
-        void Start()
+        /// <summary>
+        /// First property reference.
+        /// </summary>
+        public PropertyBindingReference source;
+
+        /// <summary>
+        /// Second property reference.
+        /// </summary>
+        public PropertyBindingReference target;
+
+        /// <summary>
+        /// When the property update will occur.
+        /// </summary>
+        public UpdateCondition update = UpdateCondition.OnUpdate;
+
+        private void Start()
         {
             UpdateTarget();
-            if (update == UpdateCondition.OnStart) enabled = false;
+            if (update == UpdateCondition.OnStart)
+            {
+                enabled = false;
+            }
         }
 
-        void Update()
+        private void Update()
         {
 #if UNITY_EDITOR
-            if (!editMode && !Application.isPlaying) return;
+            if (!editMode && !Application.isPlaying)
+            {
+                return;
+            }
 #endif
-            if (update == UpdateCondition.OnUpdate) UpdateTarget();
+            if (update == UpdateCondition.OnUpdate)
+            {
+                UpdateTarget();
+            }
         }
 
-        void LateUpdate()
+        private void LateUpdate()
         {
 #if UNITY_EDITOR
-            if (!editMode && !Application.isPlaying) return;
+            if (!editMode && !Application.isPlaying)
+            {
+                return;
+            }
 #endif
-            if (update == UpdateCondition.OnLateUpdate) UpdateTarget();
+            if (update == UpdateCondition.OnLateUpdate)
+            {
+                UpdateTarget();
+            }
         }
 
-        void FixedUpdate()
+        private void FixedUpdate()
         {
 #if UNITY_EDITOR
-            if (!editMode && !Application.isPlaying) return;
+            if (!editMode && !Application.isPlaying)
+            {
+                return;
+            }
 #endif
-            if (update == UpdateCondition.OnFixedUpdate) UpdateTarget();
+            if (update == UpdateCondition.OnFixedUpdate)
+            {
+                UpdateTarget();
+            }
         }
 
-        void OnValidate()
+        private void OnValidate()
         {
-            if (source != null) source.Reset();
-            if (target != null) target.Reset();
+            if (source != null)
+            {
+                source.Reset();
+            }
+
+            if (target != null)
+            {
+                target.Reset();
+            }
         }
 
         /// <summary>
         /// Immediately update the bound data.
         /// </summary>
-
         [ContextMenu("Update Now")]
         public void UpdateTarget()
         {
@@ -107,17 +128,27 @@ namespace LegendaryTools.UI
             {
                 if (direction == Direction.SourceUpdatesTarget)
                 {
-                    if(source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) && invertBool)
-                        target.Set(!(bool)source.Get());
+                    if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) &&
+                        invertBool)
+                    {
+                        target.Set(!(bool) source.Get());
+                    }
                     else
+                    {
                         target.Set(source.Get());
+                    }
                 }
                 else if (direction == Direction.TargetUpdatesSource)
                 {
-                    if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) && invertBool)
-                        source.Set(!(bool)target.Get());
+                    if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) &&
+                        invertBool)
+                    {
+                        source.Set(!(bool) target.Get());
+                    }
                     else
+                    {
                         source.Set(target.Get());
+                    }
                 }
                 else if (source.GetPropertyType() == target.GetPropertyType())
                 {
@@ -125,10 +156,11 @@ namespace LegendaryTools.UI
 
                     if (mLastValue == null || !mLastValue.Equals(current))
                     {
-                        if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) && invertBool)
+                        if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) &&
+                            invertBool)
                         {
-                            mLastValue = !(bool)current;
-                            target.Set(!(bool)current);
+                            mLastValue = !(bool) current;
+                            target.Set(!(bool) current);
                         }
                         else
                         {
@@ -142,10 +174,11 @@ namespace LegendaryTools.UI
 
                         if (!mLastValue.Equals(current))
                         {
-                            if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) && invertBool)
+                            if (source.GetPropertyType() == typeof(bool) && target.GetPropertyType() == typeof(bool) &&
+                                invertBool)
                             {
-                                mLastValue = !(bool)current;
-                                source.Set(!(bool)current);
+                                mLastValue = !(bool) current;
+                                source.Set(!(bool) current);
                             }
                             else
                             {

@@ -1,6 +1,7 @@
-using UnityEngine;
+using System;
 using System.Collections;
 using System.Threading;
+using UnityEngine;
 
 namespace LegendaryTools.Threading
 {
@@ -13,18 +14,22 @@ namespace LegendaryTools.Threading
         /// Task has been created, but has not begun.
         /// </summary>
         Init,
+
         /// <summary>
         /// Task is running.
         /// </summary>
         Running,
+
         /// <summary>
         /// Task has finished properly.
         /// </summary>
         Done,
+
         /// <summary>
         /// Task has been cancelled.
         /// </summary>
         Cancelled,
+
         /// <summary>
         /// Task terminated by errors.
         /// </summary>
@@ -36,44 +41,35 @@ namespace LegendaryTools.Threading
     /// </summary>
     public class AsyncRoutine : IEnumerator
     {
-        // inner running state used by state machine;
-        private enum RunningState
-        {
-            Init,
-            RunningAsync,
-            PendingYield,
-            ToBackground,
-            RunningSync,
-            CancellationRequested,
-            Done,
-            Error
-        }
-
         /// <summary>
         /// Yield return it to switch to Unity main thread.
         /// </summary>
         public static readonly object JumpToUnity = new object();
+
         /// <summary>
         /// Yield return it to switch to background thread.
         /// </summary>
         public static readonly object JumpBack = new object();
 
-        /// <summary>
-        /// The current iterator yield return value.
-        /// </summary>
-        public object Current { get; private set; }
+        private readonly IEnumerator userRoutine; // routine user want to run;
 
         // temporary stores current yield return value
         // until we think Unity coroutine engine is OK to get it;
         private object pendingUserRoutineCurrent;
-        private readonly IEnumerator userRoutine; // routine user want to run;
-        private RunningState runningState; // current running state;
         private RunningState previousRunningState; // last running state;
+        private RunningState runningState; // current running state;
+
+        public AsyncRoutine(IEnumerator routine)
+        {
+            userRoutine = routine;
+            // runs into background first;
+            runningState = RunningState.Init;
+        }
 
         /// <summary>
         /// Gets exception during running.
         /// </summary>
-        public System.Exception Exception { get; private set; }
+        public Exception Exception { get; private set; }
 
         /// <summary>
         /// Gets state of the task.
@@ -98,11 +94,25 @@ namespace LegendaryTools.Threading
             }
         }
 
-        public AsyncRoutine(IEnumerator routine)
+        /// <summary>
+        /// The current iterator yield return value.
+        /// </summary>
+        public object Current { get; private set; }
+
+        /// <summary>
+        /// Runs next iteration.
+        /// </summary>
+        /// <returns><code>true</code> for continue, otherwise <code>false</code>.</returns>
+        public bool MoveNext()
         {
-            userRoutine = routine;
-            // runs into background first;
-            runningState = RunningState.Init;
+            return OnMoveNext();
+        }
+
+        public void Reset()
+        {
+            // Reset method not supported by iterator;
+            throw new NotSupportedException(
+                "Not support calling Reset() on iterator.");
         }
 
         /// <summary>
@@ -122,29 +132,18 @@ namespace LegendaryTools.Threading
         public IEnumerator Wait()
         {
             while (State == AsyncRoutineState.Running)
+            {
                 yield return null;
-        }
-
-        /// <summary>
-        /// Runs next iteration.
-        /// </summary>
-        /// <returns><code>true</code> for continue, otherwise <code>false</code>.</returns>
-        public bool MoveNext()
-        {
-            return OnMoveNext();
-        }
-
-        public void Reset()
-        {
-            // Reset method not supported by iterator;
-            throw new System.NotSupportedException(
-                "Not support calling Reset() on iterator.");
+            }
         }
 
         // thread safely switch running state;
         private void GotoState(RunningState state)
         {
-            if (runningState == state) return;
+            if (runningState == state)
+            {
+                return;
+            }
 
             lock (this)
             {
@@ -168,7 +167,9 @@ namespace LegendaryTools.Threading
         {
             // no running for null;
             if (userRoutine == null)
+            {
                 return false;
+            }
 
             // set current to null so that Unity not get same yield value twice;
             Current = null;
@@ -233,6 +234,7 @@ namespace LegendaryTools.Threading
                             // end this iteration and Unity get noticed;
                             return true;
                         }
+
                         break;
 
                     // done running, pass false to Unity;
@@ -263,7 +265,7 @@ namespace LegendaryTools.Threading
             try
             {
                 // run next part of the user routine;
-                var result = userRoutine.MoveNext();
+                bool result = userRoutine.MoveNext();
 
                 if (result)
                 {
@@ -277,14 +279,27 @@ namespace LegendaryTools.Threading
                     GotoState(RunningState.Done);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // exception handling, save & log it;
-                this.Exception = ex;
+                Exception = ex;
                 Debug.LogError(string.Format("{0}\n{1}", ex.Message, ex.StackTrace));
                 // then terminates the task;
                 GotoState(RunningState.Error);
             }
+        }
+
+        // inner running state used by state machine;
+        private enum RunningState
+        {
+            Init,
+            RunningAsync,
+            PendingYield,
+            ToBackground,
+            RunningSync,
+            CancellationRequested,
+            Done,
+            Error
         }
     }
 

@@ -1,32 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 
 namespace LegendaryTools.UI
 {
     public delegate void OnCircularScrollViewChangeEventHandler(GameObject newSelected, GameObject oldSelected);
 
-    [System.Serializable]
+    [Serializable]
     public class CircularScrollViewChangeEventHandler : UnityEvent<GameObject>
     {
-
     }
 
-    [System.Serializable]
+    [Serializable]
     public class ScrollViewItem
     {
-        public Transform Transform;
-        public GameObject GameObject;
-        public RectTransform RectTransform;
+        private Vector3[] Corners = new Vector3[4];
 
         public float DistanceFromCenter;
-
-        public Vector2 LastAnchoredPosition;
+        public GameObject GameObject;
 
         public bool IsVisible;
-        public Rect Rect = new Rect();
-        private Vector3[] Corners = new Vector3[4];
+
+        public Vector2 LastAnchoredPosition;
+        public Rect Rect;
+        public RectTransform RectTransform;
+        public Transform Transform;
 
         public ScrollViewItem(Transform transform)
         {
@@ -35,7 +35,9 @@ namespace LegendaryTools.UI
             RectTransform = transform.GetComponent<RectTransform>();
 
             if (RectTransform != null)
+            {
                 LastAnchoredPosition = RectTransform.anchoredPosition;
+            }
         }
 
         public void UpdateVisibility(Rect parentRect)
@@ -43,7 +45,8 @@ namespace LegendaryTools.UI
             if (RectTransform != null)
             {
                 RectTransform.GetWorldCorners(Corners);
-                Rect.Set(Corners[1].x, Corners[1].y, Mathf.Abs(Corners[2].x - Corners[1].x), Mathf.Abs(Corners[0].y - Corners[1].y));
+                Rect.Set(Corners[1].x, Corners[1].y, Mathf.Abs(Corners[2].x - Corners[1].x),
+                    Mathf.Abs(Corners[0].y - Corners[1].y));
                 IsVisible = parentRect.Overlaps(Rect);
             }
         }
@@ -51,10 +54,14 @@ namespace LegendaryTools.UI
         public void UpdateDistance(Vector3 center, CircularScrollViewDirection direction)
         {
             if (direction == CircularScrollViewDirection.Horizontal)
+            {
                 DistanceFromCenter = center.x - Transform.position.x;
+            }
 
             if (direction == CircularScrollViewDirection.Vertical)
+            {
                 DistanceFromCenter = center.y - Transform.position.y;
+            }
         }
     }
 
@@ -65,71 +72,66 @@ namespace LegendaryTools.UI
     }
 
     [ExecuteInEditMode]
-    public class CircularScrollView : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler
+    public class CircularScrollView : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler,
+        IEndDragHandler, IDragHandler, IScrollHandler
     {
         public const float SNAP_DISTANCE_THRESHOLD = 0.1f;
+        private readonly List<ScrollViewItem> contentChilds = new List<ScrollViewItem>();
+        private readonly Vector3[] corners = new Vector3[4];
 
-        public CircularScrollViewDirection Direction;
+        private Vector3 alignBuffer;
 
         public TextAnchor Alignment;
 
-        public Transform FirstSelected;
-
-        public float Spacing;
-
-        [Space]
-        public bool Inertia;
+        private Vector3 center;
+        private int childCount;
+        private ScrollViewItem closestChild;
 
         public float DesacelerationRate;
 
-        [HideInInspector]
-        public bool IsDragging;
+        public CircularScrollViewDirection Direction;
 
-        [Space]
-        public bool SnapAtCenter;
+        public Transform FirstSelected;
+
+        [Space] public bool Inertia;
+
+        [HideInInspector] public bool IsDragging;
+
+        private Vector2 moveDelta = Vector2.zero;
+
+        public CircularScrollViewChangeEventHandler OnSelectedChange;
+        private Vector2 pointerStartLocalCursor = Vector2.zero;
+
+        private Rect rect = new Rect();
+        private float repositionBuffer;
+
+        [Space] public bool SnapAtCenter;
 
         public float SnapSpeed;
 
-        private Vector3 center;
-        private ScrollViewItem closestChild;
-        private readonly List<ScrollViewItem> contentChilds = new List<ScrollViewItem>();
+        public float Spacing;
 
         private Vector2 speed = Vector2.zero;
-        private Vector2 pointerStartLocalCursor = Vector2.zero;
-        private Vector2 moveDelta = Vector2.zero;
-
-        private Transform thisTransform;
         private RectTransform thisRectTransform;
 
-        private Rect rect = new Rect();
-        private readonly Vector3[] corners = new Vector3[4];
-        private int childCount = 0;
-
-        private Vector3 alignBuffer;
-        private float repositionBuffer;
-
-        public event OnCircularScrollViewChangeEventHandler OnChange;
-
-        public CircularScrollViewChangeEventHandler OnSelectedChange;
-
-        public void OnInitializePotentialDrag(PointerEventData eventData)
-        {
-            if (eventData.button != PointerEventData.InputButton.Left)
-                return;
-        }
+        private Transform thisTransform;
 
         public void OnBeginDrag(PointerEventData eventData)
         {
             pointerStartLocalCursor = Vector2.zero;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(thisRectTransform, eventData.position, eventData.pressEventCamera, out pointerStartLocalCursor);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(thisRectTransform, eventData.position,
+                eventData.pressEventCamera, out pointerStartLocalCursor);
             IsDragging = true;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
             Vector2 localCursor;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(thisRectTransform, eventData.position, eventData.pressEventCamera, out localCursor))
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(thisRectTransform, eventData.position,
+                eventData.pressEventCamera, out localCursor))
+            {
                 return;
+            }
 
             moveDelta = localCursor - pointerStartLocalCursor;
 
@@ -141,29 +143,49 @@ namespace LegendaryTools.UI
         public void OnEndDrag(PointerEventData eventData)
         {
             if (eventData.button != PointerEventData.InputButton.Left)
+            {
                 return;
+            }
 
             IsDragging = false;
 
             if (!Inertia)
+            {
                 speed = Vector2.zero;
+            }
+        }
+
+        public void OnInitializePotentialDrag(PointerEventData eventData)
+        {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+            }
         }
 
         public void OnScroll(PointerEventData eventData)
         {
-
         }
+
+        public event OnCircularScrollViewChangeEventHandler OnChange;
 
         protected virtual void SetContentAnchoredPosition(Vector2 deltaPosition, Vector2 moveDelta)
         {
             for (int i = 0; i < contentChilds.Count; i++)
             {
-                if (Direction != CircularScrollViewDirection.Horizontal) deltaPosition.x = 0;
+                if (Direction != CircularScrollViewDirection.Horizontal)
+                {
+                    deltaPosition.x = 0;
+                }
 
-                if (Direction != CircularScrollViewDirection.Vertical) deltaPosition.y = 0;
+                if (Direction != CircularScrollViewDirection.Vertical)
+                {
+                    deltaPosition.y = 0;
+                }
 
                 if (deltaPosition != contentChilds[i].RectTransform.anchoredPosition)
+                {
                     contentChilds[i].RectTransform.anchoredPosition += deltaPosition;
+                }
 
                 contentChilds[i].UpdateDistance(center, Direction);
 
@@ -211,10 +233,20 @@ namespace LegendaryTools.UI
                     if (Mathf.Abs(closestChild.DistanceFromCenter) > SNAP_DISTANCE_THRESHOLD)
                     {
                         if (Direction == CircularScrollViewDirection.Horizontal)
-                            speed = Vector3.Lerp(Mathf.Sign(closestChild.DistanceFromCenter) * Mathf.Clamp(Mathf.Abs(closestChild.DistanceFromCenter), 0, SnapSpeed) * Vector2.right, Vector3.zero, Time.deltaTime);
+                        {
+                            speed = Vector3.Lerp(
+                                Mathf.Sign(closestChild.DistanceFromCenter) *
+                                Mathf.Clamp(Mathf.Abs(closestChild.DistanceFromCenter), 0, SnapSpeed) * Vector2.right,
+                                Vector3.zero, Time.deltaTime);
+                        }
 
                         if (Direction == CircularScrollViewDirection.Vertical)
-                            speed = Vector3.Lerp(Mathf.Sign(closestChild.DistanceFromCenter) * Mathf.Clamp(Mathf.Abs(closestChild.DistanceFromCenter), 0, SnapSpeed) * Vector2.up, Vector3.zero, Time.deltaTime);
+                        {
+                            speed = Vector3.Lerp(
+                                Mathf.Sign(closestChild.DistanceFromCenter) *
+                                Mathf.Clamp(Mathf.Abs(closestChild.DistanceFromCenter), 0, SnapSpeed) * Vector2.up,
+                                Vector3.zero, Time.deltaTime);
+                        }
 
                         SetContentAnchoredPosition(speed, Vector2.zero);
                     }
@@ -235,17 +267,25 @@ namespace LegendaryTools.UI
             if (Direction == CircularScrollViewDirection.Horizontal)
             {
                 if (speed.x < 0) //move left
+                {
                     MoveAllInvisibleTo(false);
+                }
                 else if (speed.x > 0) //move right
+                {
                     MoveAllInvisibleTo(true);
+                }
             }
 
             if (Direction == CircularScrollViewDirection.Vertical)
             {
                 if (speed.y < 0)
+                {
                     MoveAllInvisibleTo(false);
+                }
                 else if (speed.y > 0)
+                {
                     MoveAllInvisibleTo(true);
+                }
             }
         }
 
@@ -256,17 +296,36 @@ namespace LegendaryTools.UI
 
             switch (Alignment)
             {
-                case TextAnchor.UpperLeft: alignBuffer.Set(corners[1].x + width, corners[1].y - height, corners[1].z); break;
-                case TextAnchor.UpperCenter: alignBuffer.Set((corners[2].x + corners[1].x) / 2.0f, corners[1].y - height, corners[0].z);  break;
-                case TextAnchor.UpperRight: alignBuffer.Set(corners[2].x - width, corners[2].y - height, corners[2].z); break;
+                case TextAnchor.UpperLeft:
+                    alignBuffer.Set(corners[1].x + width, corners[1].y - height, corners[1].z);
+                    break;
+                case TextAnchor.UpperCenter:
+                    alignBuffer.Set((corners[2].x + corners[1].x) / 2.0f, corners[1].y - height, corners[0].z);
+                    break;
+                case TextAnchor.UpperRight:
+                    alignBuffer.Set(corners[2].x - width, corners[2].y - height, corners[2].z);
+                    break;
 
-                case TextAnchor.MiddleLeft: alignBuffer.Set(corners[0].x + width, (corners[1].y + corners[0].y) / 2.0f, corners[0].z); break;
-                case TextAnchor.MiddleCenter: alignBuffer.Set((corners[2].x + corners[1].x) / 2.0f, (corners[1].y + corners[0].y) / 2.0f, corners[0].z); break;
-                case TextAnchor.MiddleRight: alignBuffer.Set(corners[2].x - width, (corners[2].y + corners[3].y) / 2.0f, corners[0].z); break;
+                case TextAnchor.MiddleLeft:
+                    alignBuffer.Set(corners[0].x + width, (corners[1].y + corners[0].y) / 2.0f, corners[0].z);
+                    break;
+                case TextAnchor.MiddleCenter:
+                    alignBuffer.Set((corners[2].x + corners[1].x) / 2.0f, (corners[1].y + corners[0].y) / 2.0f,
+                        corners[0].z);
+                    break;
+                case TextAnchor.MiddleRight:
+                    alignBuffer.Set(corners[2].x - width, (corners[2].y + corners[3].y) / 2.0f, corners[0].z);
+                    break;
 
-                case TextAnchor.LowerLeft: alignBuffer.Set(corners[0].x + width, corners[0].y + height, corners[0].z); break;
-                case TextAnchor.LowerCenter: alignBuffer.Set((corners[3].x + corners[0].x) / 2.0f, corners[0].y + height, corners[0].z); break;
-                case TextAnchor.LowerRight: alignBuffer.Set(corners[3].x - width, corners[3].y + height, corners[3].z); break;
+                case TextAnchor.LowerLeft:
+                    alignBuffer.Set(corners[0].x + width, corners[0].y + height, corners[0].z);
+                    break;
+                case TextAnchor.LowerCenter:
+                    alignBuffer.Set((corners[3].x + corners[0].x) / 2.0f, corners[0].y + height, corners[0].z);
+                    break;
+                case TextAnchor.LowerRight:
+                    alignBuffer.Set(corners[3].x - width, corners[3].y + height, corners[3].z);
+                    break;
             }
 
             return alignBuffer;
@@ -274,7 +333,7 @@ namespace LegendaryTools.UI
 
         public void Reposition()
         {
-            if(FirstSelected != null && contentChilds.Count > 1)
+            if (FirstSelected != null && contentChilds.Count > 1)
             {
                 float attempts = contentChilds.Count;
                 while (contentChilds[0].Transform != FirstSelected)
@@ -282,32 +341,41 @@ namespace LegendaryTools.UI
                     contentChilds.MoveForward();
                     attempts--;
                     if (attempts < 0)
+                    {
                         break;
+                    }
                 }
             }
 
             if (contentChilds.Count > 0)
             {
-                contentChilds[0].Transform.position = CalcAlignment(contentChilds[0].Rect.width, contentChilds[0].Rect.height);
+                contentChilds[0].Transform.position =
+                    CalcAlignment(contentChilds[0].Rect.width, contentChilds[0].Rect.height);
 
                 if (Direction == CircularScrollViewDirection.Horizontal)
+                {
                     repositionBuffer = contentChilds[0].RectTransform.anchoredPosition.x;
+                }
 
                 if (Direction == CircularScrollViewDirection.Vertical)
+                {
                     repositionBuffer = contentChilds[0].RectTransform.anchoredPosition.y;
+                }
             }
 
             for (int i = 0; i < contentChilds.Count; i++)
             {
                 if (Direction == CircularScrollViewDirection.Horizontal)
                 {
-                    contentChilds[i].RectTransform.anchoredPosition = new Vector2(repositionBuffer, contentChilds[0].RectTransform.anchoredPosition.y);
+                    contentChilds[i].RectTransform.anchoredPosition = new Vector2(repositionBuffer,
+                        contentChilds[0].RectTransform.anchoredPosition.y);
                     repositionBuffer += contentChilds[i].RectTransform.rect.width + Spacing;
                 }
 
                 if (Direction == CircularScrollViewDirection.Vertical)
                 {
-                    contentChilds[i].RectTransform.anchoredPosition = new Vector2(contentChilds[0].RectTransform.anchoredPosition.x, repositionBuffer);
+                    contentChilds[i].RectTransform.anchoredPosition =
+                        new Vector2(contentChilds[0].RectTransform.anchoredPosition.x, repositionBuffer);
                     repositionBuffer += contentChilds[i].RectTransform.rect.height + Spacing;
                 }
 
@@ -322,7 +390,9 @@ namespace LegendaryTools.UI
         public GameObject GetSelected()
         {
             if (closestChild != null && SnapAtCenter)
+            {
                 return closestChild.GameObject;
+            }
 
             return null;
         }
@@ -334,7 +404,9 @@ namespace LegendaryTools.UI
                 OnChangeSelected(newSelected, oldSelected);
 
                 if (OnChange != null)
+                {
                     OnChange.Invoke(newSelected, oldSelected);
+                }
 
                 OnSelectedChange.Invoke(newSelected);
             }
@@ -342,13 +414,14 @@ namespace LegendaryTools.UI
 
         protected virtual void OnChangeSelected(GameObject newSelected, GameObject oldSelected)
         {
-
         }
 
         private void MoveAllInvisibleTo(bool toStart)
         {
             if (contentChilds.TrueForAll(item => item.IsVisible == false))
+            {
                 return;
+            }
 
             if (contentChilds.Count > 0)
             {
@@ -358,30 +431,47 @@ namespace LegendaryTools.UI
                 while (!target.IsVisible)
                 {
                     if (toStart)
+                    {
                         target.Transform.SetAsFirstSibling();
+                    }
                     else
+                    {
                         target.Transform.SetAsLastSibling();
+                    }
 
                     if (Direction == CircularScrollViewDirection.Horizontal)
                     {
                         target.RectTransform.anchoredPosition = new Vector2(
-                            toStart ? destination.RectTransform.anchoredPosition.x - destination.RectTransform.rect.width - Spacing : destination.RectTransform.anchoredPosition.x + destination.RectTransform.rect.width + Spacing,
+                            toStart
+                                ? destination.RectTransform.anchoredPosition.x - destination.RectTransform.rect.width -
+                                  Spacing
+                                : destination.RectTransform.anchoredPosition.x + destination.RectTransform.rect.width +
+                                  Spacing,
                             destination.RectTransform.anchoredPosition.y);
                     }
 
                     if (Direction == CircularScrollViewDirection.Vertical)
                     {
-                        target.RectTransform.anchoredPosition = new Vector2(destination.RectTransform.anchoredPosition.x,
-                            toStart ? destination.RectTransform.anchoredPosition.y - destination.RectTransform.rect.height - Spacing : destination.RectTransform.anchoredPosition.y + destination.RectTransform.rect.height + Spacing);
+                        target.RectTransform.anchoredPosition = new Vector2(
+                            destination.RectTransform.anchoredPosition.x,
+                            toStart
+                                ? destination.RectTransform.anchoredPosition.y - destination.RectTransform.rect.height -
+                                  Spacing
+                                : destination.RectTransform.anchoredPosition.y + destination.RectTransform.rect.height +
+                                  Spacing);
                     }
 
                     target.UpdateVisibility(rect);
                     target.UpdateDistance(center, Direction);
 
                     if (toStart)
+                    {
                         contentChilds.MoveBackwards();
+                    }
                     else
+                    {
                         contentChilds.MoveForward();
+                    }
 
                     target = toStart ? contentChilds.Last() : contentChilds.FirstOrDefault();
                     destination = toStart ? contentChilds.FirstOrDefault() : contentChilds.Last();
@@ -394,7 +484,8 @@ namespace LegendaryTools.UI
             if (thisRectTransform != null)
             {
                 thisRectTransform.GetWorldCorners(corners);
-                rect.Set(corners[1].x, corners[1].y, Mathf.Abs(corners[2].x - corners[1].x), Mathf.Abs(corners[0].y - corners[1].y));
+                rect.Set(corners[1].x, corners[1].y, Mathf.Abs(corners[2].x - corners[1].x),
+                    Mathf.Abs(corners[0].y - corners[1].y));
                 center.Set((corners[2].x + corners[1].x) / 2.0f, (corners[1].y + corners[0].y) / 2.0f, corners[0].z);
             }
 
@@ -406,7 +497,9 @@ namespace LegendaryTools.UI
                     contentChilds.Add(new ScrollViewItem(thisTransform.GetChild(i)));
 
                     if (i == 0)
+                    {
                         closestChild = contentChilds[i];
+                    }
                 }
 
                 Reposition();

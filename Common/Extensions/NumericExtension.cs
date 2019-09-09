@@ -8,7 +8,7 @@ namespace LegendaryTools
         {
             return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
         }
-        
+
         public static bool IsSimilar(this float lhs, float rhs, float threshold)
         {
             return Mathf.Abs(lhs - rhs) < threshold;

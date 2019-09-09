@@ -6,33 +6,36 @@ namespace LegendaryTools
 {
     public static class UnityExtension
     {
-        static Slider.SliderEvent emptySliderEvent = new Slider.SliderEvent();
+        private static Slider.SliderEvent emptySliderEvent = new Slider.SliderEvent();
+
+        private static Toggle.ToggleEvent emptyToggleEvent = new Toggle.ToggleEvent();
+
+        private static InputField.OnChangeEvent emptyInputFieldEvent = new InputField.OnChangeEvent();
+
         public static void SetValue(this Slider instance, float value)
         {
-            var originalEvent = instance.onValueChanged;
+            Slider.SliderEvent originalEvent = instance.onValueChanged;
             instance.onValueChanged = emptySliderEvent;
             instance.value = value;
             instance.onValueChanged = originalEvent;
         }
 
-        static Toggle.ToggleEvent emptyToggleEvent = new Toggle.ToggleEvent();
         public static void SetValue(this Toggle instance, bool value)
         {
-            var originalEvent = instance.onValueChanged;
+            Toggle.ToggleEvent originalEvent = instance.onValueChanged;
             instance.onValueChanged = emptyToggleEvent;
             instance.isOn = value;
             instance.onValueChanged = originalEvent;
         }
 
-        static InputField.OnChangeEvent emptyInputFieldEvent = new InputField.OnChangeEvent();
         public static void SetValue(this InputField instance, string value)
         {
-            var originalEvent = instance.onValueChanged;
+            InputField.OnChangeEvent originalEvent = instance.onValueChanged;
             instance.onValueChanged = emptyInputFieldEvent;
             instance.text = value;
             instance.onValueChanged = originalEvent;
         }
-        
+
         public static Vector3 RandomInsideBox(this Bounds bounds)
         {
             Vector3[] boundsPoints = new Vector3[5];
@@ -43,9 +46,9 @@ namespace LegendaryTools
             boundsPoints[3] = new Vector3(boundsPoints[0].x, boundsPoints[1].y, boundsPoints[0].z);
             boundsPoints[4] = new Vector3(boundsPoints[1].x, boundsPoints[0].y, boundsPoints[0].z);
 
-            Vector3 randomPoint = new Vector3(UnityEngine.Random.Range(boundsPoints[0].x, boundsPoints[4].x), 
-                UnityEngine.Random.Range(boundsPoints[0].y, boundsPoints[3].y), 
-                UnityEngine.Random.Range(boundsPoints[0].z, boundsPoints[2].z));
+            Vector3 randomPoint = new Vector3(Random.Range(boundsPoints[0].x, boundsPoints[4].x),
+                Random.Range(boundsPoints[0].y, boundsPoints[3].y),
+                Random.Range(boundsPoints[0].z, boundsPoints[2].z));
 
             return randomPoint;
         }
@@ -70,7 +73,8 @@ namespace LegendaryTools
         {
             Vector3[] corners = new Vector3[4];
             rectTransform.GetWorldCorners(corners);
-            return new Rect(corners[1].x, corners[1].y, Mathf.Abs(corners[2].x - corners[1].x), Mathf.Abs(corners[0].y - corners[1].y));
+            return new Rect(corners[1].x, corners[1].y, Mathf.Abs(corners[2].x - corners[1].x),
+                Mathf.Abs(corners[0].y - corners[1].y));
         }
 
         public static bool ContainBounds(this Bounds bounds, Bounds target)
@@ -78,24 +82,27 @@ namespace LegendaryTools
             return bounds.Contains(target.min) && bounds.Contains(target.max);
         }
 
-        public static T[] FindObjectsOfType<T>(this UnityEngine.Object unityObj, bool includeInactive = false, params UnityEngine.Transform[] nonActiveParents) where T : UnityEngine.Object
+        public static T[] FindObjectsOfType<T>(this Object unityObj, bool includeInactive = false,
+            params Transform[] nonActiveParents) where T : Object
         {
             if (includeInactive)
             {
                 List<T> allComponents = new List<T>();
-                List<Transform> allGameObjects = new List<Transform>(UnityEngine.Object.FindObjectsOfType<Transform>());
+                List<Transform> allGameObjects = new List<Transform>(Object.FindObjectsOfType<Transform>());
                 allGameObjects.AddRange(nonActiveParents);
                 allGameObjects.RemoveAll(item => item.parent != null);
 
                 for (int i = 0; i < allGameObjects.Count; i++)
+                {
                     allComponents.AddRange(allGameObjects[i].GetComponentsInChildren<T>(includeInactive));
+                }
 
                 return allComponents.ToArray();
             }
-            else
-                return UnityEngine.Object.FindObjectsOfType<T>();
+
+            return Object.FindObjectsOfType<T>();
         }
-        
+
         public static bool IsSimilar(this Vector2 lhs, Vector2 rhs, float threshold)
         {
             return lhs.x.IsSimilar(rhs.x, threshold) && lhs.y.IsSimilar(rhs.y, threshold);
@@ -103,15 +110,18 @@ namespace LegendaryTools
 
         public static bool IsSimilar(this Vector3 lhs, Vector3 rhs, float threshold)
         {
-            return lhs.x.IsSimilar(rhs.x, threshold) && lhs.y.IsSimilar(rhs.y, threshold) && lhs.z.IsSimilar(rhs.z, threshold);
+            return lhs.x.IsSimilar(rhs.x, threshold) && lhs.y.IsSimilar(rhs.y, threshold) &&
+                   lhs.z.IsSimilar(rhs.z, threshold);
         }
-        
+
         public static bool PlayForward(this Animation animation, string name)
         {
             animation[name].speed = 1;
 
             if (!animation.isPlaying)
+            {
                 animation[name].normalizedTime = 0;
+            }
 
             return animation.Play(name);
         }
@@ -121,7 +131,9 @@ namespace LegendaryTools
             animation[name].speed = -1;
 
             if (!animation.isPlaying)
+            {
                 animation[name].normalizedTime = 1;
+            }
 
             return animation.Play(name);
         }

@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace LegendaryTools.Editor.Attributes
 {
     public class MultiLevelEnumAttribute : PropertyAttribute
     {
-        public MultiLevelEnumAttribute()
-        { }
     }
 }

@@ -3,26 +3,22 @@ namespace LegendaryTools.Networking
     /// <summary>
     /// Clients send requests to the server and receive responses back. Forwarded calls arrive as-is.
     /// </summary>
-
     public enum Packet
     {
         /// <summary>
         /// Empty packet. Can be used to keep the connection alive.
         /// </summary>
-
         Empty,
 
         /// <summary>
         /// This packet indicates that an error has occurred.
         /// string: Description of the error.
         /// </summary>
-
         Error,
 
         /// <summary>
         /// This packet indicates that the connection should be severed.
         /// </summary>
-
         Disconnect,
 
         //===================================================================================
@@ -31,7 +27,6 @@ namespace LegendaryTools.Networking
         /// This should be the very first packet sent by the client.
         /// int32: Protocol version.
         /// </summary>
-
         RequestID,
 
         /// <summary>
@@ -41,7 +36,6 @@ namespace LegendaryTools.Networking
         /// int32: Player ID (only if the protocol ID matched).
         /// int64: Server time in milliseconds (only if the protocol ID matched).
         /// </summary>
-
         ResponseID,
 
         ObjectSpawn,
@@ -50,6 +44,6 @@ namespace LegendaryTools.Networking
 
         Scene,
 
-        RPC,
+        RPC
     }
 }

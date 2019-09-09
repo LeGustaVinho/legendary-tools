@@ -1,13 +1,13 @@
 using System;
-using UnityEngine;
-using UnityEditor;
+using System.Collections.Generic;
 using LegendaryTools.Inspector;
 using LegendaryTools.UI;
+using UnityEditor;
+using UnityEngine;
 
 namespace LegendaryTools.Editor
 {
-    [CanEditMultipleObjects]
-    [CustomEditor(typeof(BaseLocalize), true)]
+    [CanEditMultipleObjects, CustomEditor(typeof(BaseLocalize), true)]
     public class BaseLocalizeEditor : UnityEditor.Editor
     {
         private static string[] keys;
@@ -15,8 +15,10 @@ namespace LegendaryTools.Editor
         private void Init()
         {
             if (!Localization.IsInit)
+            {
                 Localization.Init();
-            
+            }
+
             if (Localization.LocalizationData != null)
             {
                 keys = Localization.Keys;
@@ -27,14 +29,14 @@ namespace LegendaryTools.Editor
         public override void OnInspectorGUI()
         {
             Init();
-            
+
             serializedObject.Update();
 
             GUILayout.Space(6f);
             ActionDelegateEditor.SetLabelWidth(80f);
 
             GUILayout.BeginHorizontal();
-            
+
             SerializedProperty sp = ActionDelegateEditor.DrawProperty("Key", serializedObject, "key");
 
             string currentKey = sp.stringValue;
@@ -53,7 +55,7 @@ namespace LegendaryTools.Editor
                 {
                     ActionDelegateEditor.BeginContents();
 
-                    foreach (var pair in Localization.LocalizationData)
+                    foreach (KeyValuePair<string, Dictionary<string, string>> pair in Localization.LocalizationData)
                     {
                         GUILayout.BeginHorizontal();
                         GUILayout.Label(pair.Key, GUILayout.Width(66f));
@@ -83,7 +85,8 @@ namespace LegendaryTools.Editor
 
                 for (int i = 0, imax = keys.Length; i < imax; ++i)
                 {
-                    if (keys[i].StartsWith(currentKey, System.StringComparison.OrdinalIgnoreCase) || keys[i].Contains(currentKey))
+                    if (keys[i].StartsWith(currentKey, StringComparison.OrdinalIgnoreCase) ||
+                        keys[i].Contains(currentKey))
                     {
                         if (GUILayout.Button(keys[i] + " \u25B2", "CN CountBadge"))
                         {
@@ -99,10 +102,11 @@ namespace LegendaryTools.Editor
                         }
                     }
                 }
+
                 GUI.backgroundColor = Color.white;
                 GUILayout.EndVertical();
                 GUILayout.Space(22f);
-                GUILayout.EndHorizontal(); 
+                GUILayout.EndHorizontal();
             }
 
             serializedObject.ApplyModifiedProperties();

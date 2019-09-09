@@ -5,44 +5,46 @@
 #if REFLECTION_SUPPORT
 using System.Reflection;
 #endif
-
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace LegendaryTools.Inspector
 {
     /// <summary>
     /// Delegate callback that Unity can serialize and set via Inspector.
     /// </summary>
-
-    [System.Serializable]
+    [Serializable]
     public class ActionDelegate
     {
         /// <summary>
         /// Delegates can have parameters, and this class makes it possible to save references to properties
         /// that can then be passed as function arguments, such as transform.position or widget.color.
         /// </summary>
-
-        [System.Serializable]
+        [Serializable]
         public class Parameter
         {
             public Object obj;
             public string field;
 
-            public Parameter() { }
-            public Parameter(Object obj, string field) { this.obj = obj; this.field = field; }
+            public Parameter()
+            {
+            }
+
+            public Parameter(Object obj, string field)
+            {
+                this.obj = obj;
+                this.field = field;
+            }
 
 #if REFLECTION_SUPPORT
-            [System.NonSerialized]
-            public System.Type expectedType = typeof(void);
+            [NonSerialized] public Type expectedType = typeof(void);
 
             // Cached values
-            [System.NonSerialized]
-            public bool cached = false;
-            [System.NonSerialized]
-            public PropertyInfo propInfo;
-            [System.NonSerialized]
-            public FieldInfo fieldInfo;
+            [NonSerialized] public bool cached;
+            [NonSerialized] public PropertyInfo propInfo;
+            [NonSerialized] public FieldInfo fieldInfo;
 
             /// <summary>
             /// Return the property's current value.
@@ -60,18 +62,30 @@ namespace LegendaryTools.Inspector
 
                         if (obj != null && !string.IsNullOrEmpty(field))
                         {
-                            System.Type type = obj.GetType();
+                            Type type = obj.GetType();
 #if NETFX_CORE
 						propInfo = type.GetRuntimeProperty(field);
 						if (propInfo == null) fieldInfo = type.GetRuntimeField(field);
 #else
                             propInfo = type.GetProperty(field);
-                            if (propInfo == null) fieldInfo = type.GetField(field);
+                            if (propInfo == null)
+                            {
+                                fieldInfo = type.GetField(field);
+                            }
 #endif
                         }
                     }
-                    if (propInfo != null) return propInfo.GetValue(obj, null);
-                    if (fieldInfo != null) return fieldInfo.GetValue(obj);
+
+                    if (propInfo != null)
+                    {
+                        return propInfo.GetValue(obj, null);
+                    }
+
+                    if (fieldInfo != null)
+                    {
+                        return fieldInfo.GetValue(obj);
+                    }
+
                     return obj;
                 }
             }
@@ -80,11 +94,15 @@ namespace LegendaryTools.Inspector
             /// Parameter type -- a convenience function.
             /// </summary>
 
-            public System.Type type
+            public Type type
             {
                 get
                 {
-                    if (obj == null) return typeof(void);
+                    if (obj == null)
+                    {
+                        return typeof(void);
+                    }
+
                     return obj.GetType();
                 }
             }
@@ -98,32 +116,24 @@ namespace LegendaryTools.Inspector
 #endif
         }
 
-        [SerializeField]
-        MonoBehaviour mTarget;
-        [SerializeField]
-        string mMethodName;
-        [SerializeField]
-        Parameter[] mParameters;
+        [SerializeField] private MonoBehaviour mTarget;
+        [SerializeField] private string mMethodName;
+        [SerializeField] private Parameter[] mParameters;
 
         /// <summary>
         /// Whether the event delegate will be removed after execution.
         /// </summary>
-
-        public bool oneShot = false;
+        public bool oneShot;
 
         // Private variables
         public delegate void Callback();
-        [System.NonSerialized]
-        Callback mCachedCallback;
-        [System.NonSerialized]
-        bool mRawDelegate = false;
-        [System.NonSerialized]
-        bool mCached = false;
+
+        [NonSerialized] private Callback mCachedCallback;
+        [NonSerialized] private bool mRawDelegate;
+        [NonSerialized] private bool mCached;
 #if REFLECTION_SUPPORT
-        [System.NonSerialized]
-        MethodInfo mMethod;
-        [System.NonSerialized]
-        object[] mArgs;
+        [NonSerialized] private MethodInfo mMethod;
+        [NonSerialized] private object[] mArgs;
 #endif
 
         /// <summary>
@@ -132,10 +142,7 @@ namespace LegendaryTools.Inspector
 
         public MonoBehaviour target
         {
-            get
-            {
-                return mTarget;
-            }
+            get { return mTarget; }
             set
             {
                 mTarget = value;
@@ -155,10 +162,7 @@ namespace LegendaryTools.Inspector
 
         public string methodName
         {
-            get
-            {
-                return mMethodName;
-            }
+            get { return mMethodName; }
             set
             {
                 mMethodName = value;
@@ -181,7 +185,10 @@ namespace LegendaryTools.Inspector
             get
             {
 #if UNITY_EDITOR
-                if (!mCached || !Application.isPlaying) Cache();
+                if (!mCached || !Application.isPlaying)
+                {
+                    Cache();
+                }
 #else
 			if (!mCached) Cache();
 #endif
@@ -198,11 +205,14 @@ namespace LegendaryTools.Inspector
             get
             {
 #if UNITY_EDITOR
-                if (!mCached || !Application.isPlaying) Cache();
+                if (!mCached || !Application.isPlaying)
+                {
+                    Cache();
+                }
 #else
 			if (!mCached) Cache();
 #endif
-                return (mRawDelegate && mCachedCallback != null) || (mTarget != null && !string.IsNullOrEmpty(mMethodName));
+                return mRawDelegate && mCachedCallback != null || mTarget != null && !string.IsNullOrEmpty(mMethodName);
             }
         }
 
@@ -215,25 +225,45 @@ namespace LegendaryTools.Inspector
             get
             {
 #if UNITY_EDITOR
-                if (!mCached || !Application.isPlaying) Cache();
+                if (!mCached || !Application.isPlaying)
+                {
+                    Cache();
+                }
 #else
 			if (!mCached) Cache();
 #endif
-                if (mRawDelegate && mCachedCallback != null) return true;
-                if (mTarget == null) return false;
-                MonoBehaviour mb = (mTarget as MonoBehaviour);
-                return (mb == null || mb.enabled);
+                if (mRawDelegate && mCachedCallback != null)
+                {
+                    return true;
+                }
+
+                if (mTarget == null)
+                {
+                    return false;
+                }
+
+                MonoBehaviour mb = mTarget;
+                return mb == null || mb.enabled;
             }
         }
 
-        public ActionDelegate() { }
-        public ActionDelegate(Callback call) { Set(call); }
-        public ActionDelegate(MonoBehaviour target, string methodName) { Set(target, methodName); }
+        public ActionDelegate()
+        {
+        }
+
+        public ActionDelegate(Callback call)
+        {
+            Set(call);
+        }
+
+        public ActionDelegate(MonoBehaviour target, string methodName)
+        {
+            Set(target, methodName);
+        }
 
         /// <summary>
         /// GetMethodName is not supported on some platforms.
         /// </summary>
-
 #if REFLECTION_SUPPORT
 #if !UNITY_EDITOR && NETFX_CORE
 	static string GetMethodName (Callback callback)
@@ -248,8 +278,15 @@ namespace LegendaryTools.Inspector
 		return d != null && d.GetMethodInfo() != null;
 	}
 #else
-        static string GetMethodName(Callback callback) { return callback.Method.Name; }
-        static bool IsValid(Callback callback) { return callback != null && callback.Method != null; }
+        private static string GetMethodName(Callback callback)
+        {
+            return callback.Method.Name;
+        }
+
+        private static bool IsValid(Callback callback)
+        {
+            return callback != null && callback.Method != null;
+        }
 #endif
 #else
 	static bool IsValid (Callback callback) { return callback != null; }
@@ -258,18 +295,24 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Equality operator.
         /// </summary>
-
         public override bool Equals(object obj)
         {
-            if (obj == null) return !isValid;
+            if (obj == null)
+            {
+                return !isValid;
+            }
 
             if (obj is Callback)
             {
                 Callback callback = obj as Callback;
 #if REFLECTION_SUPPORT
-                if (callback.Equals(mCachedCallback)) return true;
+                if (callback.Equals(mCachedCallback))
+                {
+                    return true;
+                }
+
                 MonoBehaviour mb = callback.Target as MonoBehaviour;
-                return (mTarget == mb && string.Equals(mMethodName, GetMethodName(callback)));
+                return mTarget == mb && string.Equals(mMethodName, GetMethodName(callback));
 #elif UNITY_FLASH
 			return (callback == mCachedCallback);
 #else
@@ -280,24 +323,26 @@ namespace LegendaryTools.Inspector
             if (obj is ActionDelegate)
             {
                 ActionDelegate del = obj as ActionDelegate;
-                return (mTarget == del.mTarget && string.Equals(mMethodName, del.mMethodName));
+                return mTarget == del.mTarget && string.Equals(mMethodName, del.mMethodName);
             }
+
             return false;
         }
 
-        static int s_Hash = "EventDelegate".GetHashCode();
+        private static int s_Hash = "EventDelegate".GetHashCode();
 
         /// <summary>
         /// Used in equality operators.
         /// </summary>
-
-        public override int GetHashCode() { return s_Hash; }
+        public override int GetHashCode()
+        {
+            return s_Hash;
+        }
 
         /// <summary>
         /// Set the delegate callback directly.
         /// </summary>
-
-        void Set(Callback call)
+        private void Set(Callback call)
         {
             Clear();
 
@@ -327,7 +372,6 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Set the delegate callback using the target and method names.
         /// </summary>
-
         public void Set(MonoBehaviour target, string methodName)
         {
             Clear();
@@ -338,18 +382,21 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Cache the callback and create the list of the necessary parameters.
         /// </summary>
-
-        void Cache()
+        private void Cache()
         {
             mCached = true;
-            if (mRawDelegate) return;
+            if (mRawDelegate)
+            {
+                return;
+            }
 
 #if REFLECTION_SUPPORT
-            if (mCachedCallback == null || (mCachedCallback.Target as MonoBehaviour) != mTarget || GetMethodName(mCachedCallback) != mMethodName)
+            if (mCachedCallback == null || mCachedCallback.Target as MonoBehaviour != mTarget ||
+                GetMethodName(mCachedCallback) != mMethodName)
             {
                 if (mTarget != null && !string.IsNullOrEmpty(mMethodName))
                 {
-                    System.Type type = mTarget.GetType();
+                    Type type = mTarget.GetType();
 #if NETFX_CORE
 				try
 				{
@@ -370,14 +417,20 @@ namespace LegendaryTools.Inspector
 					return;
 				}
 #else // NETFX_CORE
-                    for (mMethod = null; type != null; )
+                    for (mMethod = null; type != null;)
                     {
                         try
                         {
-                            mMethod = type.GetMethod(mMethodName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                            if (mMethod != null) break;
+                            mMethod = type.GetMethod(mMethodName,
+                                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                            if (mMethod != null)
+                            {
+                                break;
+                            }
                         }
-                        catch (System.Exception) { }
+                        catch (Exception)
+                        {
+                        }
 #if UNITY_WP8
 					// For some odd reason Type.GetMethod(name, bindingFlags) doesn't seem to work on WP8...
 					try
@@ -399,7 +452,8 @@ namespace LegendaryTools.Inspector
 
                     if (mMethod.ReturnType != typeof(void))
                     {
-                        Debug.LogError(mTarget.GetType() + "." + mMethodName + " must have a 'void' return type.", mTarget);
+                        Debug.LogError(mTarget.GetType() + "." + mMethodName + " must have a 'void' return type.",
+                            mTarget);
                         return;
                     }
 
@@ -412,26 +466,31 @@ namespace LegendaryTools.Inspector
 #if NETFX_CORE
 					mCachedCallback = (Callback)mMethod.CreateDelegate(typeof(Callback), mTarget);
 #else
-                        mCachedCallback = (Callback)System.Delegate.CreateDelegate(typeof(Callback), mTarget, mMethodName);
+                        mCachedCallback = (Callback) Delegate.CreateDelegate(typeof(Callback), mTarget, mMethodName);
 #endif
 
                         mArgs = null;
                         mParameters = null;
                         return;
                     }
-                    else mCachedCallback = null;
+
+                    mCachedCallback = null;
 
                     // Allocate the initial list of parameters
                     if (mParameters == null || mParameters.Length != info.Length)
                     {
                         mParameters = new Parameter[info.Length];
                         for (int i = 0, imax = mParameters.Length; i < imax; ++i)
+                        {
                             mParameters[i] = new Parameter();
+                        }
                     }
 
                     // Save the parameter type
                     for (int i = 0, imax = mParameters.Length; i < imax; ++i)
+                    {
                         mParameters[i].expectedType = info[i].ParameterType;
+                    }
                 }
             }
 #endif // REFLECTION_SUPPORT
@@ -441,7 +500,6 @@ namespace LegendaryTools.Inspector
         /// Execute the delegate, if possible.
         /// This will only be used when the application is playing in order to prevent unintentional state changes.
         /// </summary>
-
         public bool Execute()
         {
 #if !REFLECTION_SUPPORT
@@ -453,7 +511,10 @@ namespace LegendaryTools.Inspector
 		}
 #else
 #if UNITY_EDITOR
-            if (!mCached || !Application.isPlaying) Cache();
+            if (!mCached || !Application.isPlaying)
+            {
+                Cache();
+            }
 #else
 		if (!mCached) Cache();
 #endif
@@ -469,9 +530,12 @@ namespace LegendaryTools.Inspector
                 else if (mCachedCallback.Target != null)
                 {
                     // There must be an [ExecuteInEditMode] flag on the script for us to call the function at edit time
-                    System.Type type = mCachedCallback.Target.GetType();
+                    Type type = mCachedCallback.Target.GetType();
                     object[] objs = type.GetCustomAttributes(typeof(ExecuteInEditMode), true);
-                    if (objs != null && objs.Length > 0) mCachedCallback();
+                    if (objs != null && objs.Length > 0)
+                    {
+                        mCachedCallback();
+                    }
                 }
 #endif
                 return true;
@@ -483,12 +547,15 @@ namespace LegendaryTools.Inspector
                 // There must be an [ExecuteInEditMode] flag on the script for us to call the function at edit time
                 if (mTarget != null && !Application.isPlaying)
                 {
-                    System.Type type = mTarget.GetType();
+                    Type type = mTarget.GetType();
                     object[] objs = type.GetCustomAttributes(typeof(ExecuteInEditMode), true);
-                    if (objs == null || objs.Length == 0) return true;
+                    if (objs == null || objs.Length == 0)
+                    {
+                        return true;
+                    }
                 }
 #endif
-                int len = (mParameters != null) ? mParameters.Length : 0;
+                int len = mParameters != null ? mParameters.Length : 0;
 
                 if (len == 0)
                 {
@@ -498,23 +565,33 @@ namespace LegendaryTools.Inspector
                 {
                     // Allocate the parameter array
                     if (mArgs == null || mArgs.Length != mParameters.Length)
+                    {
                         mArgs = new object[mParameters.Length];
+                    }
 
                     // Set all the parameters
                     for (int i = 0, imax = mParameters.Length; i < imax; ++i)
+                    {
                         mArgs[i] = mParameters[i].value;
+                    }
 
                     // Invoke the callback
                     try
                     {
                         mMethod.Invoke(mTarget, mArgs);
                     }
-                    catch (System.ArgumentException ex)
+                    catch (ArgumentException ex)
                     {
                         string msg = "Error calling ";
 
-                        if (mTarget == null) msg += mMethod.Name;
-                        else msg += mTarget.GetType() + "." + mMethod.Name;
+                        if (mTarget == null)
+                        {
+                            msg += mMethod.Name;
+                        }
+                        else
+                        {
+                            msg += mTarget.GetType() + "." + mMethod.Name;
+                        }
 
                         msg += ": " + ex.Message;
                         msg += "\n  Expected: ";
@@ -529,7 +606,9 @@ namespace LegendaryTools.Inspector
                         {
                             msg += pis[0];
                             for (int i = 1; i < pis.Length; ++i)
+                            {
                                 msg += ", " + pis[i].ParameterType;
+                            }
                         }
 
                         msg += "\n  Received: ";
@@ -542,15 +621,22 @@ namespace LegendaryTools.Inspector
                         {
                             msg += mParameters[0].type;
                             for (int i = 1; i < mParameters.Length; ++i)
+                            {
                                 msg += ", " + mParameters[i].type;
+                            }
                         }
+
                         msg += "\n";
                         Debug.LogError(msg);
                     }
 
                     // Clear the parameters so that references are not kept
-                    for (int i = 0, imax = mArgs.Length; i < imax; ++i) mArgs[i] = null;
+                    for (int i = 0, imax = mArgs.Length; i < imax; ++i)
+                    {
+                        mArgs[i] = null;
+                    }
                 }
+
                 return true;
             }
 #endif
@@ -560,7 +646,6 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Clear the event delegate.
         /// </summary>
-
         public void Clear()
         {
             mTarget = null;
@@ -578,30 +663,36 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Convert the delegate to its string representation.
         /// </summary>
-
         public override string ToString()
         {
             if (mTarget != null)
             {
                 string typeName = mTarget.GetType().ToString();
                 int period = typeName.LastIndexOf('.');
-                if (period > 0) typeName = typeName.Substring(period + 1);
+                if (period > 0)
+                {
+                    typeName = typeName.Substring(period + 1);
+                }
 
-                if (!string.IsNullOrEmpty(methodName)) return typeName + "/" + methodName;
-                else return typeName + "/[delegate]";
+                if (!string.IsNullOrEmpty(methodName))
+                {
+                    return typeName + "/" + methodName;
+                }
+
+                return typeName + "/[delegate]";
             }
+
             return mRawDelegate ? "[delegate]" : null;
         }
 
         /// <summary>
         /// Execute an entire list of delegates.
         /// </summary>
-
-        static public void Execute(List<ActionDelegate> list)
+        public static void Execute(List<ActionDelegate> list)
         {
             if (list != null)
             {
-                for (int i = 0; i < list.Count; )
+                for (int i = 0; i < list.Count;)
                 {
                     ActionDelegate del = list[i];
 
@@ -609,8 +700,15 @@ namespace LegendaryTools.Inspector
                     {
                         del.Execute();
 
-                        if (i >= list.Count) break;
-                        if (list[i] != del) continue;
+                        if (i >= list.Count)
+                        {
+                            break;
+                        }
+
+                        if (list[i] != del)
+                        {
+                            continue;
+                        }
 
                         if (del.oneShot)
                         {
@@ -618,6 +716,7 @@ namespace LegendaryTools.Inspector
                             continue;
                         }
                     }
+
                     ++i;
                 }
             }
@@ -626,8 +725,7 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Convenience function to check if the specified list of delegates can be executed.
         /// </summary>
-
-        static public bool IsValid(List<ActionDelegate> list)
+        public static bool IsValid(List<ActionDelegate> list)
         {
             if (list != null)
             {
@@ -635,17 +733,19 @@ namespace LegendaryTools.Inspector
                 {
                     ActionDelegate del = list[i];
                     if (del != null && del.isValid)
+                    {
                         return true;
+                    }
                 }
             }
+
             return false;
         }
 
         /// <summary>
         /// Assign a new event delegate.
         /// </summary>
-
-        static public ActionDelegate Set(List<ActionDelegate> list, Callback callback)
+        public static ActionDelegate Set(List<ActionDelegate> list, Callback callback)
         {
             if (list != null)
             {
@@ -654,14 +754,14 @@ namespace LegendaryTools.Inspector
                 list.Add(del);
                 return del;
             }
+
             return null;
         }
 
         /// <summary>
         /// Assign a new event delegate.
         /// </summary>
-
-        static public void Set(List<ActionDelegate> list, ActionDelegate del)
+        public static void Set(List<ActionDelegate> list, ActionDelegate del)
         {
             if (list != null)
             {
@@ -673,14 +773,15 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Append a new event delegate to the list.
         /// </summary>
-
-        static public ActionDelegate Add(List<ActionDelegate> list, Callback callback) { return Add(list, callback, false); }
+        public static ActionDelegate Add(List<ActionDelegate> list, Callback callback)
+        {
+            return Add(list, callback, false);
+        }
 
         /// <summary>
         /// Append a new event delegate to the list.
         /// </summary>
-
-        static public ActionDelegate Add(List<ActionDelegate> list, Callback callback, bool oneShot)
+        public static ActionDelegate Add(List<ActionDelegate> list, Callback callback, bool oneShot)
         {
             if (list != null)
             {
@@ -688,7 +789,9 @@ namespace LegendaryTools.Inspector
                 {
                     ActionDelegate del = list[i];
                     if (del != null && del.Equals(callback))
+                    {
                         return del;
+                    }
                 }
 
                 ActionDelegate ed = new ActionDelegate(callback);
@@ -696,6 +799,7 @@ namespace LegendaryTools.Inspector
                 list.Add(ed);
                 return ed;
             }
+
             Debug.LogWarning("Attempting to add a callback to a list that's null");
             return null;
         }
@@ -703,14 +807,15 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Append a new event delegate to the list.
         /// </summary>
-
-        static public void Add(List<ActionDelegate> list, ActionDelegate ev) { Add(list, ev, ev.oneShot); }
+        public static void Add(List<ActionDelegate> list, ActionDelegate ev)
+        {
+            Add(list, ev, ev.oneShot);
+        }
 
         /// <summary>
         /// Append a new event delegate to the list.
         /// </summary>
-
-        static public void Add(List<ActionDelegate> list, ActionDelegate ev, bool oneShot)
+        public static void Add(List<ActionDelegate> list, ActionDelegate ev, bool oneShot)
         {
             if (ev.mRawDelegate || ev.target == null || string.IsNullOrEmpty(ev.methodName))
             {
@@ -722,7 +827,9 @@ namespace LegendaryTools.Inspector
                 {
                     ActionDelegate del = list[i];
                     if (del != null && del.Equals(ev))
+                    {
                         return;
+                    }
                 }
 
                 ActionDelegate copy = new ActionDelegate(ev.target, ev.methodName);
@@ -732,19 +839,23 @@ namespace LegendaryTools.Inspector
                 {
                     copy.mParameters = new Parameter[ev.mParameters.Length];
                     for (int i = 0; i < ev.mParameters.Length; ++i)
+                    {
                         copy.mParameters[i] = ev.mParameters[i];
+                    }
                 }
 
                 list.Add(copy);
             }
-            else Debug.LogWarning("Attempting to add a callback to a list that's null");
+            else
+            {
+                Debug.LogWarning("Attempting to add a callback to a list that's null");
+            }
         }
 
         /// <summary>
         /// Remove an existing event delegate from the list.
         /// </summary>
-
-        static public bool Remove(List<ActionDelegate> list, Callback callback)
+        public static bool Remove(List<ActionDelegate> list, Callback callback)
         {
             if (list != null)
             {
@@ -759,14 +870,14 @@ namespace LegendaryTools.Inspector
                     }
                 }
             }
+
             return false;
         }
 
         /// <summary>
         /// Remove an existing event delegate from the list.
         /// </summary>
-
-        static public bool Remove(List<ActionDelegate> list, ActionDelegate ev)
+        public static bool Remove(List<ActionDelegate> list, ActionDelegate ev)
         {
             if (list != null)
             {
@@ -781,6 +892,7 @@ namespace LegendaryTools.Inspector
                     }
                 }
             }
+
             return false;
         }
     }

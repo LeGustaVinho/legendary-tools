@@ -1,23 +1,21 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
 
 namespace LegendaryTools.UI
 {
-    [ExecuteInEditMode]
-    [RequireComponent(typeof(CanvasGroup))]
-    [AddComponentMenu("UI/Layout/Panel")]
+    [ExecuteInEditMode, RequireComponent(typeof(CanvasGroup)), AddComponentMenu("UI/Layout/Panel")]
     public class UIPanel : MonoBehaviour
     {
         public delegate void OnPanelAlphaChangeEventHandler(float oldValue, float newValue);
 
-        protected CanvasGroup CanvasGroup;
-        private float canvasAlpha;
+        public bool autoDisableSelectable;
 
         public bool blocksRaycasts = true;
+        private float canvasAlpha;
+
+        protected CanvasGroup CanvasGroup;
         public bool ignoreParentGroups;
         public bool interactable = true;
-        public bool autoDisableSelectable;
 
         public event OnPanelAlphaChangeEventHandler OnPanelAlphaChange;
 
@@ -51,7 +49,7 @@ namespace LegendaryTools.UI
                 }
             }
         }
-        
+
         protected virtual void Reset()
         {
             Init();
@@ -60,16 +58,21 @@ namespace LegendaryTools.UI
         private void Init()
         {
             CanvasGroup = GetComponent<CanvasGroup>();
-            if (CanvasGroup != null) canvasAlpha = CanvasGroup.alpha;
+            if (CanvasGroup != null)
+            {
+                canvasAlpha = CanvasGroup.alpha;
+            }
         }
-        
+
         public void SetAllSelectable(bool mode)
         {
             Selectable[] allSelectable = GetComponentsInChildren<Selectable>();
             for (int i = 0; i < allSelectable.Length; i++)
             {
-                if(allSelectable[i] != null)
+                if (allSelectable[i] != null)
+                {
                     allSelectable[i].enabled = mode;
+                }
             }
         }
     }

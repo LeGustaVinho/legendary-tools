@@ -10,15 +10,19 @@ namespace LegendaryTools
     public abstract class SingletonBehaviour<T> : MonoBehaviour
         where T : MonoBehaviour
     {
-        public bool IsPersistent;
-        public bool ForceSingleInstance;
-
         private static T instance;
+        public bool ForceSingleInstance;
+        public bool IsPersistent;
+
         public static T Instance
         {
             get
             {
-                if (!instance) instance = FindObjectOfType<T>();
+                if (!instance)
+                {
+                    instance = FindObjectOfType<T>();
+                }
+
                 return instance;
             }
         }
@@ -33,16 +37,22 @@ namespace LegendaryTools
             GetInstance();
         }
 
-		private void GetInstance()
+        private void GetInstance()
         {
             if (!instance)
-                instance = this.GetComponent<T>();
-            
-            if(ForceSingleInstance)
+            {
+                instance = GetComponent<T>();
+            }
+
+            if (ForceSingleInstance)
+            {
                 (instance as SingletonBehaviour<T>).RemoveDuplicateInstances();
+            }
 
             if (IsPersistent)
+            {
                 DontDestroyOnLoad(this);
+            }
         }
 
         private void RemoveDuplicateInstances()
@@ -54,7 +64,9 @@ namespace LegendaryTools
                 for (int i = 0; i < clones.Length; i++)
                 {
                     if (clones[i] != instance)
+                    {
                         Destroy(clones[i].gameObject);
+                    }
                 }
             }
         }

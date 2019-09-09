@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections.Generic;
-using System;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace LegendaryTools
 {
@@ -8,136 +9,197 @@ namespace LegendaryTools
     {
         public static bool Verbose;
         public static List<Type> PoolTypes = new List<Type>();
-        private static Dictionary<UnityEngine.Object, PoolAssetObject<GameObject>> GameObjectPools = new Dictionary<UnityEngine.Object, PoolAssetObject<GameObject>>();
 
-        public static T Instantiate<T>(UnityEngine.Object original) where T : UnityEngine.Object
+        private static Dictionary<Object, PoolAssetObject<GameObject>> GameObjectPools =
+            new Dictionary<Object, PoolAssetObject<GameObject>>();
+
+        public static T Instantiate<T>(Object original) where T : Object
         {
             if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return GameObject
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return GameObject
+                {
                     return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject() as T;
-                else //original is Component and return GameObject
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject() as T;
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject() as T;
             }
-            else if (typeof(T).IsSameOrSubclass(typeof(Component))) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+
+            if (typeof(T).IsSameOrSubclass(typeof(Component))
+            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return T Component
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject().GetComponent<T>();
-                else //original is Component and return T Component
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject().GetComponent<T>();
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return T Component
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject()
+                        .GetComponent<T>();
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject().GetComponent<T>();
             }
-            else //includes Texture, AudioClip, etc
-                return NonGameObjectInstantiate<T>(original);
+
+            return NonGameObjectInstantiate<T>(original);
         }
 
-        public static T Instantiate<T>(UnityEngine.Object original, Transform parent) where T : UnityEngine.Object
+        public static T Instantiate<T>(Object original, Transform parent) where T : Object
         {
             if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return GameObject
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return GameObject
+                {
                     return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(parent) as T;
-                else //original is Component and return GameObject
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent) as T;
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent) as T;
             }
-            else if (typeof(T).IsSameOrSubclass(typeof(Component))) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+
+            if (typeof(T).IsSameOrSubclass(typeof(Component))
+            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return T Component
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(parent).GetComponent<T>();
-                else //original is Component and return T Component
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent).GetComponent<T>();
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return T Component
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(parent)
+                        .GetComponent<T>();
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent)
+                    .GetComponent<T>();
             }
-            else //includes Texture, AudioClip, etc
-                return NonGameObjectInstantiate<T>(original);
+
+            return NonGameObjectInstantiate<T>(original);
         }
 
-        public static T Instantiate<T>(UnityEngine.Object original, Vector3 position, Quaternion rotation) where T : UnityEngine.Object
+        public static T Instantiate<T>(Object original, Vector3 position, Quaternion rotation) where T : Object
         {
             if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return GameObject
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(position, rotation) as T;
-                else //original is Component and return GameObject
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation) as T;
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return GameObject
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform)
+                        .CreateUnityObject(position, rotation) as T;
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform)
+                    .CreateUnityObject(position, rotation) as T;
             }
-            else if (typeof(T).IsSameOrSubclass(typeof(Component))) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+
+            if (typeof(T).IsSameOrSubclass(typeof(Component))
+            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return T Component
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(position, rotation).GetComponent<T>();
-                else //original is Component and return T Component
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation).GetComponent<T>();
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return T Component
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform)
+                        .CreateUnityObject(position, rotation).GetComponent<T>();
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation)
+                    .GetComponent<T>();
             }
-            else //includes Texture, AudioClip, etc
-                return NonGameObjectInstantiate<T>(original);
+
+            return NonGameObjectInstantiate<T>(original);
         }
 
-        public static T Instantiate<T>(UnityEngine.Object original, Vector3 position, Quaternion rotation, Transform parent) where T : UnityEngine.Object
+        public static T Instantiate<T>(Object original, Vector3 position, Quaternion rotation, Transform parent)
+            where T : Object
         {
             if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return GameObject
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(position, rotation, parent) as T;
-                else //original is Component and return GameObject
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation, parent) as T;
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return GameObject
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform)
+                        .CreateUnityObject(position, rotation, parent) as T;
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform)
+                    .CreateUnityObject(position, rotation, parent) as T;
             }
-            else if (typeof(T).IsSameOrSubclass(typeof(Component))) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+
+            if (typeof(T).IsSameOrSubclass(typeof(Component))
+            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))) //original is GameObject and return T Component
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(position, rotation, parent).GetComponent<T>();
-                else //original is Component and return T Component
-                    return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation, parent).GetComponent<T>();
+                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
+                ) //original is GameObject and return T Component
+                {
+                    return GetGameObjectPool<T>((original as GameObject).transform)
+                        .CreateUnityObject(position, rotation, parent).GetComponent<T>();
+                }
+
+                return GetGameObjectPool<T>((original as Component).transform)
+                    .CreateUnityObject(position, rotation, parent).GetComponent<T>();
             }
-            else //includes Texture, AudioClip, etc
-                return NonGameObjectInstantiate<T>(original);
+
+            return NonGameObjectInstantiate<T>(original);
         }
 
-        private static PoolAssetObject<GameObject> GetGameObjectPool<T>(UnityEngine.Component original) where T : UnityEngine.Object
+        private static PoolAssetObject<GameObject> GetGameObjectPool<T>(Component original) where T : Object
         {
             if (!GameObjectPools.ContainsKey(original))
             {
                 GameObjectPools.Add(original, new PoolAssetObject<GameObject>(original.gameObject));
 
                 if (!PoolTypes.Contains(typeof(GameObject)))
+                {
                     PoolTypes.Add(typeof(GameObject));
+                }
             }
 
             return GameObjectPools[original];
         }
 
-        private static T NonGameObjectInstantiate<T>(UnityEngine.Object original) where T : UnityEngine.Object
+        private static T NonGameObjectInstantiate<T>(Object original) where T : Object
         {
             PoolAssetObject<T> poolAssetObject = PoolAssetObject<T>.Instance as PoolAssetObject<T>;
 
             if (PoolAssetObject<T>.Instance == null)
+            {
                 poolAssetObject = new PoolAssetObject<T>(original as T);
+            }
 
             if (!PoolTypes.Contains(typeof(T)))
+            {
                 PoolTypes.Add(typeof(T));
+            }
 
             return poolAssetObject.CreateUnityObject();
         }
 
-        public static void Destroy<T>(T instance) where T : UnityEngine.Object
+        public static void Destroy<T>(T instance) where T : Object
         {
-            if (instance.GetType().IsSameOrSubclass(typeof(Component))) //includes MonoBehaviour, Transform and all others components
+            if (instance.GetType().IsSameOrSubclass(typeof(Component))
+            ) //includes MonoBehaviour, Transform and all others components
             {
-                PoolAssetObject<GameObject> poolAssetObject = PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
+                PoolAssetObject<GameObject> poolAssetObject =
+                    PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
 
-                if(poolAssetObject != null)
+                if (poolAssetObject != null)
+                {
                     poolAssetObject.RecycleUnityObject((instance as Component).gameObject);
+                }
             }
             else if (instance.GetType().IsSameOrSubclass(typeof(GameObject)))
             {
-                PoolAssetObject<GameObject> poolAssetObject = PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
+                PoolAssetObject<GameObject> poolAssetObject =
+                    PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
 
                 if (poolAssetObject != null)
+                {
                     poolAssetObject.RecycleUnityObject(instance as GameObject);
+                }
             }
             else //includes Texture, AudioClip, etc
             {
                 PoolAssetObject<T> poolAssetObject = PoolAssetObject<T>.Instance as PoolAssetObject<T>;
 
                 if (poolAssetObject != null)
+                {
                     poolAssetObject.RecycleUnityObject(instance);
+                }
             }
         }
 
@@ -154,7 +216,9 @@ namespace LegendaryTools
         public static void Clear<T>()
         {
             if (PoolObject<T>.Instance != null)
+            {
                 PoolObject<T>.Instance.Clear();
+            }
         }
 
         public static int GetTotalInstances<T>()
@@ -162,12 +226,16 @@ namespace LegendaryTools
             if (typeof(T).IsSubclassOf(typeof(Component)))
             {
                 if (PoolAssetObject<GameObject>.Instance != null)
+                {
                     return PoolAssetObject<GameObject>.Instance.TotalCount;
+                }
             }
             else
             {
                 if (PoolObject<T>.Instance != null)
+                {
                     return PoolObject<T>.Instance.TotalCount;
+                }
             }
 
             return -1;
@@ -178,12 +246,16 @@ namespace LegendaryTools
             if (typeof(T).IsSubclassOf(typeof(Component)))
             {
                 if (PoolAssetObject<GameObject>.Instance != null)
+                {
                     return PoolAssetObject<GameObject>.Instance.ActiveCount;
+                }
             }
             else
             {
                 if (PoolObject<T>.Instance != null)
+                {
                     return PoolObject<T>.Instance.ActiveCount;
+                }
             }
 
             return -1;
@@ -194,12 +266,16 @@ namespace LegendaryTools
             if (typeof(T).IsSubclassOf(typeof(Component)))
             {
                 if (PoolAssetObject<GameObject>.Instance != null)
+                {
                     return PoolAssetObject<GameObject>.Instance.InactiveCount;
+                }
             }
             else
             {
                 if (PoolObject<T>.Instance != null)
+                {
                     return PoolObject<T>.Instance.InactiveCount;
+                }
             }
 
             return -1;

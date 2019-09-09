@@ -1,30 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace LegendaryTools
 {
     public class GameObjectListing<TGameObject, TData>
-        where TGameObject : UnityEngine.Component, GameObjectListing<TGameObject, TData>.IListingItem
+        where TGameObject : Component, GameObjectListing<TGameObject, TData>.IListingItem
     {
-                public interface IListingItem
-        {
-            void Init(TData item);
-        }
+        public readonly Func<TData[]> DataProvider;
 
-		public bool AutoDestroyAllBeforeAdd = true;
-        public TGameObject Prefab;
-        public Transform Parent;
+        public bool AutoDestroyAllBeforeAdd = true;
         public List<TGameObject> Listing = new List<TGameObject>();
-
-        public readonly Func<TData[]> DataProvider = null;
-        
-        public event Action<TGameObject> OnPreDestroy;
+        public Transform Parent;
+        public TGameObject Prefab;
         private Transform prefabTransform;
-        
+
         public GameObjectListing()
         {
-
         }
 
         public GameObjectListing(TGameObject prefab, Transform parent, Func<TData[]> dataProvider) : this()
@@ -34,6 +27,8 @@ namespace LegendaryTools
             DataProvider = dataProvider;
         }
 
+        public event Action<TGameObject> OnPreDestroy;
+
         public virtual List<TGameObject> Generate()
         {
             return DataProvider != null ? GenerateList(DataProvider.Invoke()) : null;
@@ -41,15 +36,19 @@ namespace LegendaryTools
 
         public virtual List<TGameObject> GenerateList(TData[] itens, Predicate<TData> filter = null)
         {
-			if (AutoDestroyAllBeforeAdd)
+            if (AutoDestroyAllBeforeAdd)
+            {
                 DestroyAll();
+            }
 
             for (int i = 0; i < itens.Length; i++)
             {
                 if (filter != null)
                 {
                     if (filter.Invoke(itens[i]))
+                    {
                         CreateGameObject(itens[i]);
+                    }
                 }
                 else
                 {
@@ -67,7 +66,7 @@ namespace LegendaryTools
                 if (Listing[i] != null)
                 {
                     OnPreDestroy?.Invoke(Listing[i]);
-                    GameObject.Destroy(Listing[i].gameObject);
+                    Object.Destroy(Listing[i].gameObject);
                 }
             }
 
@@ -79,8 +78,10 @@ namespace LegendaryTools
             TGameObject newGO = InstantiateFromPrefab(item, Prefab);
             Transform newGOTransform = newGO.transform;
             if (prefabTransform == null)
+            {
                 prefabTransform = Prefab.transform;
-            
+            }
+
             Listing.Add(newGO);
 
             newGOTransform.SetParent(Parent);
@@ -94,7 +95,12 @@ namespace LegendaryTools
 
         protected virtual TGameObject InstantiateFromPrefab(TData item, TGameObject prefab)
         {
-            return UnityEngine.Object.Instantiate<TGameObject>(Prefab);
+            return Object.Instantiate(Prefab);
+        }
+
+        public interface IListingItem
+        {
+            void Init(TData item);
         }
     }
 }

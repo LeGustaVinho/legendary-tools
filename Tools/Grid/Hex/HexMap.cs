@@ -1,18 +1,55 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace LegendaryTools.Grid
 {
     public class HexMap : ICollection<Hex>
     {
-        private readonly HashSet<Hex> map = new HashSet<Hex>();
         private readonly Layout layout;
+        private readonly HashSet<Hex> map = new HashSet<Hex>();
 
         public HexMap(Layout.WorldPlane plane, Orientation orientation, Vector3 size, Vector3 origin)
         {
             layout = new Layout(plane, orientation, size, origin);
+        }
+
+        public void Add(Hex item)
+        {
+            map.Add(item);
+        }
+
+        public void Clear()
+        {
+            map.Clear();
+        }
+
+        public bool Contains(Hex cell)
+        {
+            return map.Contains(cell);
+        }
+
+        public void CopyTo(Hex[] array, int arrayIndex)
+        {
+            map.CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(Hex item)
+        {
+            return map.Remove(item);
+        }
+
+        public int Count => map.Count;
+        public bool IsReadOnly => false;
+
+        public IEnumerator<Hex> GetEnumerator()
+        {
+            return map.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         public void Draw()
@@ -49,34 +86,6 @@ namespace LegendaryTools.Grid
             return neighbors.ToArray();
         }
 
-        public void Add(Hex item)
-        {
-            map.Add(item);
-        }
-
-        public void Clear()
-        {
-            map.Clear();
-        }
-
-        public bool Contains(Hex cell)
-        {
-            return map.Contains(cell);
-        }
-
-        public void CopyTo(Hex[] array, int arrayIndex)
-        {
-            map.CopyTo(array, arrayIndex);
-        }
-
-        public bool Remove(Hex item)
-        {
-            return map.Remove(item);
-        }
-
-        public int Count => map.Count;
-        public bool IsReadOnly => false;
-
         public Hex[] Line(Hex a, Hex b)
         {
             return FractionalHex.Line(a, b);
@@ -93,7 +102,9 @@ namespace LegendaryTools.Grid
                 {
                     current = new Hex(q, r);
                     if (map.Contains(current))
+                    {
                         cellsInRange.Add(current);
+                    }
                 }
             }
 
@@ -157,16 +168,6 @@ namespace LegendaryTools.Grid
                     map.Add(new Hex(q, r, -q - r));
                 }
             }
-        }
-
-        public IEnumerator<Hex> GetEnumerator()
-        {
-            return map.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }

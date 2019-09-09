@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using LegendaryTools.Systems;
-
-
+﻿using UnityEngine;
 
 public class EnumAttributeSystemMB : MonoBehaviour
 {
-    public EnumAttributeSystem EnumAttributeSystem;
     public EnumAttribute EnumAttribute;
+    public EnumAttributeSystem EnumAttributeSystem;
 }

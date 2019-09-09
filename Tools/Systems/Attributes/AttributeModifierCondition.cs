@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 
 namespace LegendaryTools.Systems
 {
@@ -13,5 +10,3 @@ namespace LegendaryTools.Systems
         public float Value;
     }
 }
-
-

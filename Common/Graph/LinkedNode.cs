@@ -17,6 +17,44 @@ namespace LegendaryTools.Graph
         where N : LinkedNode<G, N, NC, C>
         where NC : NodeConnection<G, N, NC, C>
     {
+        protected readonly List<NC> Connections = new List<NC>();
+
+        public LinkedNode(G owner = null) : base(owner)
+        {
+            owner?.Add(this as N);
+        }
+
+        public NC[] AllConnections => Connections.ToArray();
+
+        public NC[] OutboundConnections
+        {
+            get
+            {
+                return Connections.FindAll(item =>
+                    item.From == this || item.Direction == NodeConnectionDirection.Bidirectional).ToArray();
+            }
+        }
+
+        public NC[] InboundConnections
+        {
+            get
+            {
+                return Connections
+                    .FindAll(item => item.To == this || item.Direction == NodeConnectionDirection.Bidirectional)
+                    .ToArray();
+            }
+        }
+
+        public IEnumerator<NC> GetEnumerator()
+        {
+            return Connections.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
         public virtual N[] Neighbours
         {
             get
@@ -27,35 +65,18 @@ namespace LegendaryTools.Graph
                 {
                     neighbours.Add(Connections[i].From == this ? Connections[i].To : Connections[i].From);
                 }
-                
+
                 return neighbours.ToArray();
             }
         }
+
         public int Count => Connections.Count;
-
-        protected readonly List<NC> Connections = new List<NC>();
-        
-        public NC[] AllConnections => Connections.ToArray();
-
-        public NC[] OutboundConnections
-        {
-            get { return Connections.FindAll(item=> item.From == this || item.Direction == NodeConnectionDirection.Bidirectional).ToArray(); }
-        }
-        
-        public NC[] InboundConnections
-        {
-            get { return Connections.FindAll(item => item.To == this || item.Direction == NodeConnectionDirection.Bidirectional).ToArray(); }
-        }
 
         public event Action<NC> OnConnectionAdd;
         public event Action<NC> OnConnectionRemove;
-        
-        public LinkedNode(G owner = null) : base(owner)
-        {
-            owner?.Add(this as N);
-        }
-        
-        public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional, float weight = 0)
+
+        public NC ConnectTo(N to, C context, NodeConnectionDirection direction = NodeConnectionDirection.Bidirectional,
+            float weight = 0)
         {
             if (to == null)
             {
@@ -68,7 +89,7 @@ namespace LegendaryTools.Graph
                 Debug.LogError("[LinkedNode:ConnectTo()] -> You cant connect to yourself.");
                 return null;
             }
-            
+
             NC newConnection = Owner.CreateConnection(this as N, to, context, direction, weight);
             Connections.Add(newConnection);
             to.Connections.Add(newConnection);
@@ -81,30 +102,20 @@ namespace LegendaryTools.Graph
             OnConnectionRemove?.Invoke(nodeConnection);
             return Connections.Remove(nodeConnection);
         }
-        
+
         public NC[] GetConnections(N node)
         {
             return Connections.FindAll(item => item.From == node || item.To == node).ToArray();
         }
-        
+
         public NC GetConnectionTo(N node)
         {
             return Connections.Find(item => item.To == node);
         }
-        
+
         public NC FindConnection(Predicate<NC> predicate)
         {
             return Connections.Find(predicate);
-        }
-
-        public IEnumerator<NC> GetEnumerator()
-        {
-            return Connections.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         public override string ToString()

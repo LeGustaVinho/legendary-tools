@@ -3,30 +3,28 @@
 #endif
 
 #if REFLECTION_SUPPORT
+using UnityEngine;
 using System.Reflection;
 using System.Diagnostics;
 #endif
-
-using UnityEngine;
 using System;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace LegendaryTools.Inspector
 {
     /// <summary>
     /// Reference to a specific field or property that can be set via inspector.
     /// </summary>
-
-    [System.Serializable]
+    [Serializable]
     public class PropertyBindingReference
     {
-        [SerializeField]
-        Component mTarget;
-        [SerializeField]
-        string mName;
+        [SerializeField] private Component mTarget;
+        [SerializeField] private string mName;
 
 #if REFLECTION_SUPPORT
-        FieldInfo mField = null;
-        PropertyInfo mProperty = null;
+        private FieldInfo mField;
+        private PropertyInfo mProperty;
 #endif
 
         /// <summary>
@@ -35,10 +33,7 @@ namespace LegendaryTools.Inspector
 
         public Component target
         {
-            get
-            {
-                return mTarget;
-            }
+            get { return mTarget; }
             set
             {
                 mTarget = value;
@@ -55,10 +50,7 @@ namespace LegendaryTools.Inspector
 
         public string name
         {
-            get
-            {
-                return mName;
-            }
+            get { return mName; }
             set
             {
                 mName = value;
@@ -73,7 +65,7 @@ namespace LegendaryTools.Inspector
         /// Whether this delegate's values have been set.
         /// </summary>
 
-        public bool isValid { get { return (mTarget != null && !string.IsNullOrEmpty(mName)); } }
+        public bool isValid => mTarget != null && !string.IsNullOrEmpty(mName);
 
         /// <summary>
         /// Whether the target script is actually enabled.
@@ -83,13 +75,20 @@ namespace LegendaryTools.Inspector
         {
             get
             {
-                if (mTarget == null) return false;
-                MonoBehaviour mb = (mTarget as MonoBehaviour);
-                return (mb == null || mb.enabled);
+                if (mTarget == null)
+                {
+                    return false;
+                }
+
+                MonoBehaviour mb = mTarget as MonoBehaviour;
+                return mb == null || mb.enabled;
             }
         }
 
-        public PropertyBindingReference() { }
+        public PropertyBindingReference()
+        {
+        }
+
         public PropertyBindingReference(Component target, string fieldName)
         {
             mTarget = target;
@@ -99,13 +98,23 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Helper function that returns the property type.
         /// </summary>
-
         public Type GetPropertyType()
         {
 #if REFLECTION_SUPPORT
-            if (mProperty == null && mField == null && isValid) Cache();
-            if (mProperty != null) return mProperty.PropertyType;
-            if (mField != null) return mField.FieldType;
+            if (mProperty == null && mField == null && isValid)
+            {
+                Cache();
+            }
+
+            if (mProperty != null)
+            {
+                return mProperty.PropertyType;
+            }
+
+            if (mField != null)
+            {
+                return mField.FieldType;
+            }
 #endif
 #if UNITY_EDITOR || !UNITY_FLASH
             return typeof(void);
@@ -117,7 +126,6 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Equality operator.
         /// </summary>
-
         public override bool Equals(object obj)
         {
             if (obj == null)
@@ -128,23 +136,25 @@ namespace LegendaryTools.Inspector
             if (obj is PropertyBindingReference)
             {
                 PropertyBindingReference pb = obj as PropertyBindingReference;
-                return (mTarget == pb.mTarget && string.Equals(mName, pb.mName));
+                return mTarget == pb.mTarget && string.Equals(mName, pb.mName);
             }
+
             return false;
         }
 
-        static int s_Hash = "PropertyBinding".GetHashCode();
+        private static int s_Hash = "PropertyBinding".GetHashCode();
 
         /// <summary>
         /// Used in equality operators.
         /// </summary>
-
-        public override int GetHashCode() { return s_Hash; }
+        public override int GetHashCode()
+        {
+            return s_Hash;
+        }
 
         /// <summary>
         /// Set the delegate callback using the target and method names.
         /// </summary>
-
         public void Set(Component target, string methodName)
         {
             mTarget = target;
@@ -154,7 +164,6 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Clear the event delegate.
         /// </summary>
-
         public void Clear()
         {
             mTarget = null;
@@ -164,7 +173,6 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Reset the cached references.
         /// </summary>
-
         public void Reset()
         {
 #if REFLECTION_SUPPORT
@@ -176,24 +184,33 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Convert the delegate to its string representation.
         /// </summary>
-
-        public override string ToString() { return ToString(mTarget, name); }
+        public override string ToString()
+        {
+            return ToString(mTarget, name);
+        }
 
         /// <summary>
         /// Convenience function that converts the specified component + property pair into its string representation.
         /// </summary>
-
-        static public string ToString(Component comp, string property)
+        public static string ToString(Component comp, string property)
         {
             if (comp != null)
             {
                 string typeName = comp.GetType().ToString();
                 int period = typeName.LastIndexOf('.');
-                if (period > 0) typeName = typeName.Substring(period + 1);
+                if (period > 0)
+                {
+                    typeName = typeName.Substring(period + 1);
+                }
 
-                if (!string.IsNullOrEmpty(property)) return typeName + "." + property;
-                else return typeName + ".[property]";
+                if (!string.IsNullOrEmpty(property))
+                {
+                    return typeName + "." + property;
+                }
+
+                return typeName + ".[property]";
             }
+
             return null;
         }
 
@@ -201,51 +218,71 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Retrieve the property's value.
         /// </summary>
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
+        [DebuggerHidden, DebuggerStepThrough]
         public object Get()
         {
-            if (mProperty == null && mField == null && isValid) Cache();
+            if (mProperty == null && mField == null && isValid)
+            {
+                Cache();
+            }
 
             if (mProperty != null)
             {
                 if (mProperty.CanRead)
+                {
                     return mProperty.GetValue(mTarget, null);
+                }
             }
             else if (mField != null)
             {
                 return mField.GetValue(mTarget);
             }
+
             return null;
         }
 
         /// <summary>
         /// Assign the bound property's value.
         /// </summary>
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
+        [DebuggerHidden, DebuggerStepThrough]
         public bool Set(object value)
         {
-            if (mProperty == null && mField == null && isValid) Cache();
-            if (mProperty == null && mField == null) return false;
+            if (mProperty == null && mField == null && isValid)
+            {
+                Cache();
+            }
+
+            if (mProperty == null && mField == null)
+            {
+                return false;
+            }
 
             if (value == null)
             {
                 try
                 {
-                    if (mProperty != null) mProperty.SetValue(mTarget, null, null);
-                    else mField.SetValue(mTarget, null);
+                    if (mProperty != null)
+                    {
+                        mProperty.SetValue(mTarget, null, null);
+                    }
+                    else
+                    {
+                        mField.SetValue(mTarget, null);
+                    }
                 }
-                catch (Exception) { return false; }
+                catch (Exception)
+                {
+                    return false;
+                }
             }
 
             // Can we set the value?
             if (!Convert(ref value))
             {
                 if (Application.isPlaying)
-                    UnityEngine.Debug.LogError("Unable to convert " + value.GetType() + " to " + GetPropertyType());
+                {
+                    Debug.LogError("Unable to convert " + value.GetType() + " to " + GetPropertyType());
+                }
             }
             else if (mField != null)
             {
@@ -257,16 +294,15 @@ namespace LegendaryTools.Inspector
                 mProperty.SetValue(mTarget, value, null);
                 return true;
             }
+
             return false;
         }
 
         /// <summary>
         /// Cache the field or property.
         /// </summary>
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        bool Cache()
+        [DebuggerHidden, DebuggerStepThrough]
+        private bool Cache()
         {
             if (mTarget != null && !string.IsNullOrEmpty(mName))
             {
@@ -284,16 +320,19 @@ namespace LegendaryTools.Inspector
                 mField = null;
                 mProperty = null;
             }
-            return (mField != null || mProperty != null);
+
+            return mField != null || mProperty != null;
         }
 
         /// <summary>
         /// Whether we can assign the property using the specified value.
         /// </summary>
-
-        bool Convert(ref object value)
+        private bool Convert(ref object value)
         {
-            if (mTarget == null) return false;
+            if (mTarget == null)
+            {
+                return false;
+            }
 
             Type to = GetPropertyType();
             Type from;
@@ -303,11 +342,18 @@ namespace LegendaryTools.Inspector
 #if NETFX_CORE
 			if (!to.GetTypeInfo().IsClass) return false;
 #else
-                if (!to.IsClass) return false;
+                if (!to.IsClass)
+                {
+                    return false;
+                }
 #endif
                 from = to;
             }
-            else from = value.GetType();
+            else
+            {
+                from = value.GetType();
+            }
+
             return Convert(ref value, from, to);
         }
 #else // Everything below = no reflection support
@@ -330,8 +376,7 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Whether we can convert one type to another for assignment purposes.
         /// </summary>
-
-        static public bool Convert(Type from, Type to)
+        public static bool Convert(Type from, Type to)
         {
             object temp = null;
             return Convert(ref temp, from, to);
@@ -340,29 +385,31 @@ namespace LegendaryTools.Inspector
         /// <summary>
         /// Whether we can convert one type to another for assignment purposes.
         /// </summary>
-
-        static public bool Convert(object value, Type to)
+        public static bool Convert(object value, Type to)
         {
             if (value == null)
             {
                 value = null;
                 return Convert(ref value, to, to);
             }
+
             return Convert(ref value, value.GetType(), to);
         }
 
         /// <summary>
         /// Whether we can convert one type to another for assignment purposes.
         /// </summary>
-
-        static public bool Convert(ref object value, Type from, Type to)
+        public static bool Convert(ref object value, Type from, Type to)
         {
 #if REFLECTION_SUPPORT
             // If the value can be assigned as-is, we're done
 #if NETFX_CORE
 		if (to.GetTypeInfo().IsAssignableFrom(from.GetTypeInfo())) return true;
 #else
-            if (to.IsAssignableFrom(from)) return true;
+            if (to.IsAssignableFrom(from))
+            {
+                return true;
+            }
 #endif
 
 #else
@@ -371,12 +418,15 @@ namespace LegendaryTools.Inspector
             // If the target type is a string, just convert the value
             if (to == typeof(string))
             {
-                value = (value != null) ? value.ToString() : "null";
+                value = value != null ? value.ToString() : "null";
                 return true;
             }
 
             // If the value is null we should not proceed further
-            if (value == null) return false;
+            if (value == null)
+            {
+                return false;
+            }
 
             if (to == typeof(int))
             {
@@ -384,7 +434,7 @@ namespace LegendaryTools.Inspector
                 {
                     int val;
 
-                    if (int.TryParse((string)value, out val))
+                    if (int.TryParse((string) value, out val))
                     {
                         value = val;
                         return true;
@@ -392,7 +442,7 @@ namespace LegendaryTools.Inspector
                 }
                 else if (from == typeof(float))
                 {
-                    value = Mathf.RoundToInt((float)value);
+                    value = Mathf.RoundToInt((float) value);
                     return true;
                 }
             }
@@ -402,13 +452,14 @@ namespace LegendaryTools.Inspector
                 {
                     float val;
 
-                    if (float.TryParse((string)value, out val))
+                    if (float.TryParse((string) value, out val))
                     {
                         value = val;
                         return true;
                     }
                 }
             }
+
             return false;
         }
     }

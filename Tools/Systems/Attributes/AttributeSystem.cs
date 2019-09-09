@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace LegendaryTools.Systems
 {
     public class AttributeSystem<T>
     {
-        public List<Attribute<T>> Attributes = new List<Attribute<T>>();
         private readonly Dictionary<T, Attribute<T>> attributesFinderCache = new Dictionary<T, Attribute<T>>();
+        public List<Attribute<T>> Attributes = new List<Attribute<T>>();
 
         public void AddModifiers(AttributeSystem<T> attributeSystem)
         {
@@ -21,7 +20,9 @@ namespace LegendaryTools.Systems
                 {
                     currentAttribute = GetAttributeByID(allModifiers[i].TargetAttributeModifier[j].TargetAttributeID);
                     if (currentAttribute != null)
+                    {
                         currentAttribute.AddModifier(allModifiers[i], allModifiers[i].TargetAttributeModifier[j]);
+                    }
                 }
             }
         }
@@ -31,7 +32,9 @@ namespace LegendaryTools.Systems
             for (int i = 0; i < Attributes.Count; i++)
             {
                 if (Attributes[i].Modifiers.Count > 0)
+                {
                     Attributes[i].RemoveModifiers(attributeSystem);
+                }
             }
         }
 
@@ -41,26 +44,24 @@ namespace LegendaryTools.Systems
             {
                 return attributesFinderCache[attributeName];
             }
-            else
+
+            Attribute<T> attr = null;
+            foreach (Attribute<T> attribute in Attributes)
             {
-                Attribute<T> attr = null;
-                foreach (var attribute in Attributes)
+                if (attribute.Config.ID.Equals(attributeName))
                 {
-                    if(attribute.Config.ID.Equals(attributeName))
-                        attr = attribute;
-                }
-                
-                if (attr != null)
-                {
-                    attributesFinderCache.Add(attributeName, attr);
-                    return attr;
-                }
-                else
-                {
-                    Debug.LogError("[AttributeSystem:GetAttributeByID(" + attributeName + ") -> Not found");
-                    return null;
+                    attr = attribute;
                 }
             }
+
+            if (attr != null)
+            {
+                attributesFinderCache.Add(attributeName, attr);
+                return attr;
+            }
+
+            Debug.LogError("[AttributeSystem:GetAttributeByID(" + attributeName + ") -> Not found");
+            return null;
         }
 
         protected void updateAttributeCache()

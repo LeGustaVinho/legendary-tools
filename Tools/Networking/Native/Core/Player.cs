@@ -3,35 +3,30 @@ namespace LegendaryTools.Networking
     /// <summary>
     /// Class containing basic information about a remote player.
     /// </summary>
-
     public class Player
     {
-        static protected int mPlayerCounter = 0;
-        static protected object mLock = new int();
-
         /// <summary>
         /// Protocol version.
         /// </summary>
-
         public const int version = 12;
+
+        protected static int mPlayerCounter;
+        protected static object mLock = new int();
+
+        /// <summary>
+        /// Player's custom data. Set via TNManger.playerData.
+        /// </summary>
+        public object data = null;
 
         /// <summary>
         /// All players have a unique identifier given by the server.
         /// </summary>
-
         public int id = 1;
 
         /// <summary>
         /// All players have a name that they chose for themselves.
         /// </summary>
-
         public string name = "Guest";
-
-        /// <summary>
-        /// Player's custom data. Set via TNManger.playerData.
-        /// </summary>
-
-        public object data = null;
 
 #if !STANDALONE
         //static DataNode mDummy = new DataNode("Version", version);
@@ -50,14 +45,21 @@ namespace LegendaryTools.Networking
         //	}
         //}
 #endif
+        public Player()
+        {
+        }
 
-        public Player() { }
-        public Player(string playerName) { name = playerName; }
+        public Player(string playerName)
+        {
+            name = playerName;
+        }
 
         /// <summary>
         /// Call after shutting down the server.
         /// </summary>
-
-        static public void ResetPlayerCounter() { mPlayerCounter = 0; }
+        public static void ResetPlayerCounter()
+        {
+            mPlayerCounter = 0;
+        }
     }
 }

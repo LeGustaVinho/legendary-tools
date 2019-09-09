@@ -7,8 +7,8 @@ namespace LegendaryTools.Editor
     [CustomPropertyDrawer(typeof(MultiLevelEnumAttribute))]
     public class MultiLevelEnumDrawer : PropertyDrawer
     {
-        private bool init = false;
         private GUIContent[] displayedOptions;
+        private bool init;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
@@ -23,15 +23,19 @@ namespace LegendaryTools.Editor
                 property.enumValueIndex = EditorGUI.Popup(position, label, property.enumValueIndex, displayedOptions);
             }
             else
-                EditorGUI.LabelField(position, label.text + " not Supported type: " + property.propertyType.ToString());
+            {
+                EditorGUI.LabelField(position, label.text + " not Supported type: " + property.propertyType);
+            }
         }
 
-        GUIContent[] EnumGetNames(SerializedProperty property)
+        private GUIContent[] EnumGetNames(SerializedProperty property)
         {
             GUIContent[] result = new GUIContent[property.enumNames.Length];
 
             for (int i = 0; i < property.enumNames.Length; i++)
+            {
                 result[i] = new GUIContent(property.enumNames[i].Replace('_', '/'));
+            }
 
             return result;
         }

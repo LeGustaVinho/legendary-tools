@@ -1,6 +1,5 @@
-﻿using UnityEngine;
-using System;
-using System.Collections;
+﻿using System;
+using UnityEngine;
 
 namespace LegendaryTools
 {
@@ -8,9 +7,9 @@ namespace LegendaryTools
     {
 #if UNITY_EDITOR
         private static readonly string IMAGE_FORMAT = ".png";
-        
+
         public KeyCode PrintKey = KeyCode.F12;
-        
+
         // Use this for initialization
         private void Start()
         {
@@ -28,7 +27,7 @@ namespace LegendaryTools
 
         public static string GenerateUID()
         {
-            return String.Format("{0: yyyyMMddHHmmssffff}", DateTime.Now);
+            return string.Format("{0: yyyyMMddHHmmssffff}", DateTime.Now);
         }
 #endif
     }

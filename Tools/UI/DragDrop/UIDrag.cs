@@ -1,77 +1,56 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.EventSystems;
-using System.Collections.Generic;
 
 namespace LegendaryTools.UI
 {
     public class UIDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
-        [Tooltip("Prefab will be duplicated")]
-        public UIDrag DragPrefab;
+        public static readonly Dictionary<int, DraggingObject> Dragging = new Dictionary<int, DraggingObject>();
+        private readonly List<RaycastResult> hoveredRaycastResults = new List<RaycastResult>();
 
-        [Tooltip("Adapt rotation to current slot rotation")]
-        public bool DragOnSurfaces = true;
-        [Tooltip("ReScale object in local space to reduce parent scale impact")]
-        public bool ForcePrefabScale = true;
-        [Tooltip("Use Transform.position instead RectTransform.anchoredPosition3D")]
-        public bool UseTransformPosition = true;
-        [Tooltip("Back to the original state if space is not a slot. (Do not stack with destroy)")]
-        public bool ReturnoToStart = true;
-        [Tooltip("Object will be destroyed if drop in a non-slot. (Do not stack with return)")]
-        public bool DestroyOnDropInvalid = false;
-        [Tooltip("Object will not be returned to start position and rotation. Override OnReturnToStart() to animate it.")]
-        public bool ReturnWillBeAnimated = false;
-
-        protected bool IsInit = false;
+        protected Vector2 anchoredPosition3D;
+        protected Vector2 anchorMax;
+        protected Vector2 anchorMin;
         protected Canvas Canvas;
-
-        protected Vector3 startPosition; //global position
-        protected Quaternion startRotation; //local rotation
-        protected Transform startParent;
+        public CanvasGroup CanvasGroup;
 
         public UIDrop CurrentContainer;
 
-        protected Vector2 anchoredPosition3D;
-        protected Vector2 anchorMin;
-        protected Vector2 anchorMax;
-        protected Vector2 pivot;
-        protected Vector2 sizeDelta;
+        [Tooltip("Object will be destroyed if drop in a non-slot. (Do not stack with return)")]
+        public bool DestroyOnDropInvalid;
 
-        protected RectTransform RectTransform;
-        public CanvasGroup CanvasGroup;
+        [Tooltip("Adapt rotation to current slot rotation")]
+        public bool DragOnSurfaces = true;
+
+        [Tooltip("Prefab will be duplicated")] public UIDrag DragPrefab;
+
+        [Tooltip("ReScale object in local space to reduce parent scale impact")]
+        public bool ForcePrefabScale = true;
 
         public List<UIDrop> hovered = new List<UIDrop>();
-        private readonly List<RaycastResult> hoveredRaycastResults = new List<RaycastResult>();
 
-        public static readonly Dictionary<int, DraggingObject> Dragging = new Dictionary<int, DraggingObject>();
+        protected bool IsInit;
+        protected Vector2 pivot;
 
-        public virtual void OnDestroy()
-        {
-            //clean hovered objects
-            for (int i = hovered.Count - 1; i >= 0; i--)
-            {
-                hovered[i].OnHoverEnd();
-                if (hovered[i].Stored != null)
-                {
-                    if (hovered[i].Stored.CanvasGroup != null)
-                        hovered[i].Stored.CanvasGroup.blocksRaycasts = true;
-                }
-                if (CurrentContainer != null) CurrentContainer.Stored = null;
-                hovered.RemoveAt(i);
-            }
-        }
+        protected RectTransform RectTransform;
 
-        public void SnapTo(UIDrop slot, bool ensureRotation = false)
-        {
-            Init();
+        [Tooltip("Back to the original state if space is not a slot. (Do not stack with destroy)")]
+        public bool ReturnoToStart = true;
 
-            if (slot.ParentWithContainer) transform.SetParent(slot.transform);
-            if (slot.RestoreAnchorAndPivot) RestoreAnchorPivot();
-            if (slot.SnapAnchoring) RectTransform.anchoredPosition3D = (slot.transform as RectTransform).anchoredPosition3D;
-            if (slot.SnapTransformPosition) transform.position = slot.transform.position;
-            if (ensureRotation) transform.rotation = slot.transform.rotation;
-        }
-        
+        [Tooltip(
+            "Object will not be returned to start position and rotation. Override OnReturnToStart() to animate it.")]
+        public bool ReturnWillBeAnimated;
+
+        protected Vector2 sizeDelta;
+        protected Transform startParent;
+
+        protected Vector3 startPosition; //global position
+        protected Quaternion startRotation; //local rotation
+
+        [Tooltip("Use Transform.position instead RectTransform.anchoredPosition3D")]
+        public bool UseTransformPosition = true;
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             Init();
@@ -81,16 +60,28 @@ namespace LegendaryTools.UI
 
                 if (DragPrefab) //will clone object
                 {
-                    Dragging[eventData.pointerId] = new DraggingObject(eventData.pointerId, (Instantiate(DragPrefab, transform.position, transform.rotation) as UIDrag));
-                    if (ForcePrefabScale) Dragging[eventData.pointerId].Object.transform.localScale = DragPrefab.transform.localScale;
+                    Dragging[eventData.pointerId] = new DraggingObject(eventData.pointerId,
+                        Instantiate(DragPrefab, transform.position, transform.rotation));
+                    if (ForcePrefabScale)
+                    {
+                        Dragging[eventData.pointerId].Object.transform.localScale = DragPrefab.transform.localScale;
+                    }
                 }
                 else //will move yourselfs
                 {
                     Dragging[eventData.pointerId] = new DraggingObject(eventData.pointerId, this);
                 }
 
-                if (CanvasGroup == null) CanvasGroup = GetComponent<CanvasGroup>();
-                if (CanvasGroup == null) CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+                if (CanvasGroup == null)
+                {
+                    CanvasGroup = GetComponent<CanvasGroup>();
+                }
+
+                if (CanvasGroup == null)
+                {
+                    CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+                }
+
                 CanvasGroup.blocksRaycasts = false;
 
                 Dragging[eventData.pointerId].Object.AnchorAndPivotCenter();
@@ -98,9 +89,13 @@ namespace LegendaryTools.UI
                 Dragging[eventData.pointerId].Object.transform.SetAsLastSibling();
 
                 if (DragOnSurfaces)
+                {
                     Dragging[eventData.pointerId].Plane = transform as RectTransform;
+                }
                 else
+                {
                     Dragging[eventData.pointerId].Plane = Canvas.transform as RectTransform;
+                }
 
                 setDraggedPosition(eventData);
                 OnDragStart(eventData);
@@ -112,7 +107,9 @@ namespace LegendaryTools.UI
             Init();
 
             if (Dragging[eventData.pointerId] != null)
+            {
                 setDraggedPosition(eventData);
+            }
 
             checkHover(eventData);
 
@@ -121,7 +118,10 @@ namespace LegendaryTools.UI
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (Dragging[eventData.pointerId].OnEndDrag) return;
+            if (Dragging[eventData.pointerId].OnEndDrag)
+            {
+                return;
+            }
 
             //Debug.Log("OnEndDrag " + eventData.pointerId);
 
@@ -130,7 +130,8 @@ namespace LegendaryTools.UI
             {
                 //Debug.Log("Hovering " + targetSlot.transform.name);
 
-                if (targetSlot != CurrentContainer && targetSlot.CanDrop(eventData, this)) //prevent self-container swap and drop check
+                if (targetSlot != CurrentContainer && targetSlot.CanDrop(eventData, this)
+                ) //prevent self-container swap and drop check
                 {
                     UIDrag other = targetSlot.Stored;
                     UIDrop destinationContainer = targetSlot;
@@ -146,37 +147,42 @@ namespace LegendaryTools.UI
                             originContainer.Stored = other;
 
                             destinationContainer.Stored = null;
-                            this.CurrentContainer = null;
+                            CurrentContainer = null;
 
                             Debug.Log("Swapped");
-                            Debug.Log("Other[" + other.name + "] container: " + other.CurrentContainer.name + " | Origin Container[" + originContainer.name + "]: " + originContainer.Stored.name);
+                            Debug.Log("Other[" + other.name + "] container: " + other.CurrentContainer.name +
+                                      " | Origin Container[" + originContainer.name + "]: " +
+                                      originContainer.Stored.name);
 
                             other.OnSlotChanged(destinationContainer, originContainer);
                         }
                         else
                         {
                             if (originContainer != null)
+                            {
                                 originContainer.Stored = null;
-                            
-                            this.CurrentContainer = null;
+                            }
+
+                            CurrentContainer = null;
                         }
                     }
                     else
                     {
                         if (originContainer != null)
+                        {
                             originContainer.Stored = null; //remove reference from container
-                        
-                        this.CurrentContainer = null;
+                        }
+
+                        CurrentContainer = null;
                     }
 
                     droppedTarget = destinationContainer;
                     OnSlotChanged(originContainer, destinationContainer);
                     break;
                 }
-                else
-                {
-                    Debug.Log("Valid container[" + targetSlot.name + "] = " + (targetSlot != CurrentContainer) + " | Can be dropped = " + targetSlot.CanDrop(eventData, this));
-                }
+
+                Debug.Log("Valid container[" + targetSlot.name + "] = " + (targetSlot != CurrentContainer) +
+                          " | Can be dropped = " + targetSlot.CanDrop(eventData, this));
             }
 
             if (droppedTarget == null)
@@ -185,7 +191,9 @@ namespace LegendaryTools.UI
                 if (DestroyOnDropInvalid)
                 {
                     if (CurrentContainer != null)
+                    {
                         CurrentContainer.Stored = null; //remove reference from container
+                    }
 
                     Destroy(gameObject);
                     return;
@@ -203,25 +211,89 @@ namespace LegendaryTools.UI
             Dragging[eventData.pointerId].OnEndDrag = true;
 
             if (droppedTarget != null)
+            {
                 droppedTarget.OnDrop(eventData);
+            }
+        }
+
+        public virtual void OnDestroy()
+        {
+            //clean hovered objects
+            for (int i = hovered.Count - 1; i >= 0; i--)
+            {
+                hovered[i].OnHoverEnd();
+                if (hovered[i].Stored != null)
+                {
+                    if (hovered[i].Stored.CanvasGroup != null)
+                    {
+                        hovered[i].Stored.CanvasGroup.blocksRaycasts = true;
+                    }
+                }
+
+                if (CurrentContainer != null)
+                {
+                    CurrentContainer.Stored = null;
+                }
+
+                hovered.RemoveAt(i);
+            }
+        }
+
+        public void SnapTo(UIDrop slot, bool ensureRotation = false)
+        {
+            Init();
+
+            if (slot.ParentWithContainer)
+            {
+                transform.SetParent(slot.transform);
+            }
+
+            if (slot.RestoreAnchorAndPivot)
+            {
+                RestoreAnchorPivot();
+            }
+
+            if (slot.SnapAnchoring)
+            {
+                RectTransform.anchoredPosition3D = (slot.transform as RectTransform).anchoredPosition3D;
+            }
+
+            if (slot.SnapTransformPosition)
+            {
+                transform.position = slot.transform.position;
+            }
+
+            if (ensureRotation)
+            {
+                transform.rotation = slot.transform.rotation;
+            }
         }
 
         protected void Init()
         {
-            if (IsInit) return;
-            
+            if (IsInit)
+            {
+                return;
+            }
+
             CanvasGroup = GetComponent<CanvasGroup>();
-            if (CanvasGroup == null) CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+            if (CanvasGroup == null)
+            {
+                CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+            }
 
             RectTransform = GetComponent<RectTransform>();
 
             Canvas = GetComponentInParent<Canvas>();
-            if (Canvas == null) return;
+            if (Canvas == null)
+            {
+                return;
+            }
 
             cache();
             IsInit = true;
         }
-        
+
         protected void cache()
         {
             startPosition = transform.position;
@@ -253,7 +325,7 @@ namespace LegendaryTools.UI
             RectTransform.pivot = new Vector2(0.5f, 0.5f);
             RectTransform.sizeDelta = newSize;
         }
-        
+
         //restore all (anchor, pivot, anchorPosition)
         protected void RestoreAll(bool hasAnimation = false)
         {
@@ -268,57 +340,64 @@ namespace LegendaryTools.UI
                     transform.localRotation = startRotation;
                 }
                 else
+                {
                     RectTransform.anchoredPosition3D = anchoredPosition3D; //use anchoredPosition or TransformPosition?
+                }
             }
             else
             {
                 if (UseTransformPosition)
+                {
                     OnReturnToStart(startPosition, startRotation, transform.position, transform.rotation);
+                }
                 else
-                    OnReturnToStart(anchoredPosition3D, startRotation, RectTransform.anchoredPosition3D, transform.rotation);
+                {
+                    OnReturnToStart(anchoredPosition3D, startRotation, RectTransform.anchoredPosition3D,
+                        transform.rotation);
+                }
             }
         }
-        
+
         protected virtual void OnSlotChanged(UIDrop from, UIDrop to)
         {
-
         }
 
         //override this to do returned animation
-        protected virtual void OnReturnToStart(Vector3 startPos, Quaternion startRot, Vector3 endPos, Quaternion endRotation)
+        protected virtual void OnReturnToStart(Vector3 startPos, Quaternion startRot, Vector3 endPos,
+            Quaternion endRotation)
         {
-
         }
 
         protected virtual void OnDragUpdate(PointerEventData eventData)
         {
-
         }
 
         protected virtual void OnDragStart(PointerEventData eventData)
         {
-
         }
 
         protected virtual void OnDragEnd(PointerEventData eventData)
         {
-
         }
 
         private void setDraggedPosition(PointerEventData eventData)
         {
-            if (DragOnSurfaces && eventData.pointerEnter != null && eventData.pointerEnter.transform as RectTransform != null)
+            if (DragOnSurfaces && eventData.pointerEnter != null &&
+                eventData.pointerEnter.transform as RectTransform != null)
+            {
                 Dragging[eventData.pointerId].Plane = eventData.pointerEnter.transform as RectTransform;
+            }
 
-            var rt = Dragging[eventData.pointerId].Object.GetComponent<RectTransform>();
+            RectTransform rt = Dragging[eventData.pointerId].Object.GetComponent<RectTransform>();
             Vector3 globalMousePos;
-            if (RectTransformUtility.ScreenPointToWorldPointInRectangle(Dragging[eventData.pointerId].Plane, eventData.position, eventData.pressEventCamera, out globalMousePos))
+            if (RectTransformUtility.ScreenPointToWorldPointInRectangle(Dragging[eventData.pointerId].Plane,
+                eventData.position, eventData.pressEventCamera, out globalMousePos))
             {
                 rt.position = globalMousePos;
                 rt.rotation = Dragging[eventData.pointerId].Plane.rotation;
             }
         }
-        
+
         private void checkHover(PointerEventData eventData)
         {
             hoveredRaycastResults.Clear();
@@ -336,10 +415,14 @@ namespace LegendaryTools.UI
                         if (targetSlot.Stored != null)
                         {
                             if (!targetSlot.Stored.IsInit)
+                            {
                                 targetSlot.Stored.Init();
+                            }
 
                             if (targetSlot.Stored.CanvasGroup != null)
+                            {
                                 targetSlot.Stored.CanvasGroup.blocksRaycasts = false;
+                            }
                         }
                     }
                 }
@@ -355,11 +438,16 @@ namespace LegendaryTools.UI
                     if (hovered[i].Stored != null)
                     {
                         if (!hovered[i].Stored.IsInit)
+                        {
                             hovered[i].Stored.Init();
+                        }
 
                         if (hovered[i].Stored.CanvasGroup != null)
+                        {
                             hovered[i].Stored.CanvasGroup.blocksRaycasts = true;
+                        }
                     }
+
                     hovered.RemoveAt(i);
                 }
             }
@@ -374,13 +462,18 @@ namespace LegendaryTools.UI
                 if (hovered[i].Stored != null)
                 {
                     if (!hovered[i].Stored.IsInit)
+                    {
                         hovered[i].Stored.Init();
+                    }
 
                     if (hovered[i].Stored.CanvasGroup != null)
+                    {
                         hovered[i].Stored.CanvasGroup.blocksRaycasts = true;
+                    }
                 }
+
                 hovered.RemoveAt(i);
             }
         }
-    };
+    }
 }

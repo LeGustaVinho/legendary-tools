@@ -13,8 +13,8 @@ namespace LegendaryTools.UI
         {
             Localization.OnLocalizationLanguageChange += OnLocalizationLanguageChange;
         }
-        
-        protected  virtual void OnDestroy()
+
+        protected virtual void OnDestroy()
         {
             Localization.OnLocalizationLanguageChange -= OnLocalizationLanguageChange;
         }
@@ -23,6 +23,7 @@ namespace LegendaryTools.UI
         {
             Localize(Localization.Get(key));
         }
+
         public abstract void Localize(string value);
     }
- }
+}

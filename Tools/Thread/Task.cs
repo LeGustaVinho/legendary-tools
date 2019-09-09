@@ -12,7 +12,7 @@ namespace LegendaryTools.Threading
         Running,
         Completed,
         Error,
-        Aborted,
+        Aborted
     }
 
     public enum TaskType
@@ -20,49 +20,40 @@ namespace LegendaryTools.Threading
         Action,
         ActionParameterized,
         Function,
-        FunctionParameterized,
+        FunctionParameterized
     }
 
     public class Task
     {
-        public delegate void OnTaskStartEventHandler(Task task);
         public delegate void OnTaskCompleteEventHandler(Task task);
-        public delegate void OnTaskHierarchyCompleteEventHandler(Task task);
+
         public delegate void OnTaskExceptionEventHandler(Task task);
 
-        protected static List<Task> AllTasks = new List<Task>();
+        public delegate void OnTaskHierarchyCompleteEventHandler(Task task);
 
-        public TaskState State { get; protected set; }
-        public TaskType Type { get; protected set; }
-        public object Arg { get; protected set; }
-        public object Result { get; protected set; }
-        public Exception Error { get; protected set; }
-        public bool IsPooled { get; protected set; }
-        public bool IsCompletedHierarchy { get; protected set; }
-        public Task Parent { get; protected set; }
+        public delegate void OnTaskStartEventHandler(Task task);
+
+        protected static List<Task> AllTasks = new List<Task>();
+        protected Action action;
 
         protected List<Task> childs = new List<Task>();
-        protected Action action;
-        protected System.Threading.Thread thread;
+        protected bool CompleteWasNotified;
+        protected bool ExceptionWasNotified;
+        protected bool HierarchyCompleteWasNotified;
 
         protected bool StartWasNotified;
-        protected bool CompleteWasNotified;
-        protected bool HierarchyCompleteWasNotified;
-        protected bool ExceptionWasNotified;
-
-        public event OnTaskStartEventHandler OnTaskStart;
-        public event OnTaskCompleteEventHandler OnTaskComplete;
-        public event OnTaskHierarchyCompleteEventHandler OnTaskHierarchyComplete;
-        public event OnTaskExceptionEventHandler OnTaskException;
+        protected Thread thread;
 
         protected Task(bool isPooled = true)
         {
-            this.IsPooled = isPooled;
+            IsPooled = isPooled;
 
             State = TaskState.Waiting;
 
-            if (!this.IsPooled)
-                thread = new System.Threading.Thread(ThreadWorker);
+            if (!IsPooled)
+            {
+                thread = new Thread(ThreadWorker);
+            }
 
             AllTasks.Add(this);
         }
@@ -74,6 +65,20 @@ namespace LegendaryTools.Threading
             Type = TaskType.Action;
         }
 
+        public TaskState State { get; protected set; }
+        public TaskType Type { get; protected set; }
+        public object Arg { get; protected set; }
+        public object Result { get; protected set; }
+        public Exception Error { get; protected set; }
+        public bool IsPooled { get; protected set; }
+        public bool IsCompletedHierarchy { get; protected set; }
+        public Task Parent { get; protected set; }
+
+        public event OnTaskStartEventHandler OnTaskStart;
+        public event OnTaskCompleteEventHandler OnTaskComplete;
+        public event OnTaskHierarchyCompleteEventHandler OnTaskHierarchyComplete;
+        public event OnTaskExceptionEventHandler OnTaskException;
+
         /// <summary>
         /// Start this task with a optional param
         /// </summary>
@@ -82,12 +87,16 @@ namespace LegendaryTools.Threading
         {
             if (State == TaskState.Waiting)
             {
-                this.Arg = arg;
+                Arg = arg;
 
-                if (this.IsPooled)
+                if (IsPooled)
+                {
                     ThreadPool.QueueUserWorkItem(ThreadWorker, arg);
+                }
                 else
+                {
                     thread.Start(arg);
+                }
             }
         }
 
@@ -98,8 +107,10 @@ namespace LegendaryTools.Threading
         {
             State = TaskState.Aborted;
 
-            if(thread != null)
+            if (thread != null)
+            {
                 thread.Abort();
+            }
         }
 
         /// <summary>
@@ -111,7 +122,9 @@ namespace LegendaryTools.Threading
             while (State != TaskState.Completed)
             {
                 if (State == TaskState.Error || State == TaskState.Aborted)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -126,7 +139,9 @@ namespace LegendaryTools.Threading
             while (!IsCompletedHierarchy)
             {
                 if (State == TaskState.Error || State == TaskState.Aborted)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -141,8 +156,8 @@ namespace LegendaryTools.Threading
 
                 return child;
             }
-            else
-                return child;
+
+            return child;
         }
 
         /// <summary>
@@ -154,28 +169,37 @@ namespace LegendaryTools.Threading
             Arg = null;
             Result = null;
             State = TaskState.Waiting;
-            StartWasNotified = CompleteWasNotified = HierarchyCompleteWasNotified = ExceptionWasNotified = IsCompletedHierarchy = false;
+            StartWasNotified = CompleteWasNotified =
+                HierarchyCompleteWasNotified = ExceptionWasNotified = IsCompletedHierarchy = false;
             Error = null;
 
             if (recursive)
             {
                 for (int i = 0; i < childs.Count; i++)
+                {
                     childs[i].Reset();
+                }
             }
         }
 
         protected virtual void StartChilds()
         {
             if (childs.Count == 0)
+            {
                 IsCompletedHierarchy = true;
+            }
             else
             {
                 for (int i = 0; i < childs.Count; i++)
+                {
                     childs[i].Start(Result);
+                }
             }
 
             if (Parent != null)
+            {
                 Parent.CheckCompletedHierarchy();
+            }
         }
 
         protected virtual void CheckCompletedHierarchy()
@@ -185,29 +209,41 @@ namespace LegendaryTools.Threading
 
         protected virtual void Check()
         {
-            switch(State)
+            switch (State)
             {
                 case TaskState.Completed:
 
                     if (!CompleteWasNotified)
+                    {
                         NotifyCompleted();
+                    }
 
                     if (!HierarchyCompleteWasNotified)
+                    {
                         NotifyHierarchyComplete();
+                    }
 
                     break;
                 case TaskState.Running:
                     if (!StartWasNotified)
+                    {
                         NotifyStart();
-                        break;
+                    }
+
+                    break;
                 case TaskState.Error:
-                        if (!ExceptionWasNotified)
-                            NotifyException();
+                    if (!ExceptionWasNotified)
+                    {
+                        NotifyException();
+                    }
+
                     break;
             }
 
             for (int i = 0; i < childs.Count; i++)
+            {
                 childs[i].Check();
+            }
         }
 
         protected virtual void NotifyStart()
@@ -215,7 +251,9 @@ namespace LegendaryTools.Threading
             if (State == TaskState.Running)
             {
                 if (OnTaskStart != null)
+                {
                     OnTaskStart.Invoke(this);
+                }
 
                 StartWasNotified = true;
             }
@@ -226,7 +264,9 @@ namespace LegendaryTools.Threading
             if (State == TaskState.Completed)
             {
                 if (OnTaskComplete != null)
+                {
                     OnTaskComplete.Invoke(this);
+                }
 
                 CompleteWasNotified = true;
             }
@@ -236,8 +276,10 @@ namespace LegendaryTools.Threading
         {
             if (IsCompletedHierarchy)
             {
-                if(OnTaskHierarchyComplete != null)
+                if (OnTaskHierarchyComplete != null)
+                {
                     OnTaskHierarchyComplete.Invoke(this);
+                }
 
                 HierarchyCompleteWasNotified = true;
             }
@@ -248,7 +290,9 @@ namespace LegendaryTools.Threading
             if (State == TaskState.Error)
             {
                 if (OnTaskException != null)
+                {
                     OnTaskException.Invoke(this);
+                }
 
                 ExceptionWasNotified = true;
             }
@@ -256,10 +300,12 @@ namespace LegendaryTools.Threading
 
         protected virtual void ThreadWorker(object param = null)
         {
-            Debug.Log("Background ThreadID: " + System.Threading.Thread.CurrentThread.ManagedThreadId);
-            thread = System.Threading.Thread.CurrentThread;
+            Debug.Log("Background ThreadID: " + Thread.CurrentThread.ManagedThreadId);
+            thread = Thread.CurrentThread;
             if (State == TaskState.Aborted)
+            {
                 return;
+            }
 
             State = TaskState.Running;
 
@@ -295,8 +341,10 @@ namespace LegendaryTools.Threading
         /// </summary>
         public static void Update()
         {
-            for(int i = 0; i < AllTasks.Count; i++)
+            for (int i = 0; i < AllTasks.Count; i++)
+            {
                 AllTasks[i].Check();
+            }
         }
 
         /// <summary>
@@ -309,7 +357,9 @@ namespace LegendaryTools.Threading
             while (tasks.TrueForAll(item => item.State != TaskState.Completed))
             {
                 if (tasks.Any(item => item.State == TaskState.Error || item.State == TaskState.Aborted))
+                {
                     return false;
+                }
             }
 
             return true;
@@ -325,7 +375,9 @@ namespace LegendaryTools.Threading
             while (Array.TrueForAll(tasks, item => item.State != TaskState.Completed))
             {
                 if (tasks.Any(item => item.State == TaskState.Error || item.State == TaskState.Aborted))
+                {
                     return false;
+                }
             }
 
             return true;
@@ -341,7 +393,9 @@ namespace LegendaryTools.Threading
             while (tasks.TrueForAll(item => item.IsCompletedHierarchy))
             {
                 if (tasks.Any(item => item.State == TaskState.Error || item.State == TaskState.Aborted))
+                {
                     return false;
+                }
             }
 
             return true;
@@ -386,7 +440,8 @@ namespace LegendaryTools.Threading
         /// <param name="action"></param>
         /// <param name="useThreadPool"></param>
         /// <returns></returns>
-        public static Task<TParam, TResult> Create<TParam, TResult>(Func<TParam, TResult> func, bool useThreadPool = true)
+        public static Task<TParam, TResult> Create<TParam, TResult>(Func<TParam, TResult> func,
+            bool useThreadPool = true)
         {
             return new Task<TParam, TResult>(func, useThreadPool);
         }
@@ -396,10 +451,9 @@ namespace LegendaryTools.Threading
     {
         public delegate void OnTask1CompleteEventHandler(T result);
 
-        protected Action<T> parameterizedAction;
         protected Func<T> func;
 
-        public event OnTask1CompleteEventHandler OnTaskCompleteResult;
+        protected Action<T> parameterizedAction;
 
         public Task(Action<T> parameterizedAction, bool isPooled)
             : base(isPooled)
@@ -415,20 +469,28 @@ namespace LegendaryTools.Threading
             Type = TaskType.Function;
         }
 
+        public event OnTask1CompleteEventHandler OnTaskCompleteResult;
+
         protected override void NotifyCompleted()
         {
             base.NotifyCompleted();
 
             if (OnTaskCompleteResult != null && Type == TaskType.Function)
-                OnTaskCompleteResult.Invoke((T)Result);
+            {
+                OnTaskCompleteResult.Invoke((T) Result);
+            }
         }
 
         protected override void WorkerFunction(object param = null)
         {
             switch (Type)
             {
-                case TaskType.ActionParameterized: parameterizedAction((T)param); break;
-                case TaskType.Function: Result = func.Invoke(); break;
+                case TaskType.ActionParameterized:
+                    parameterizedAction((T) param);
+                    break;
+                case TaskType.Function:
+                    Result = func.Invoke();
+                    break;
             }
         }
     }
@@ -439,8 +501,6 @@ namespace LegendaryTools.Threading
 
         protected Func<TParam, TResult> parameterizedFunc;
 
-        public event OnTask2CompleteEventHandler OnTaskCompleteResult;
-
         public Task(Func<TParam, TResult> parameterizedFunc, bool isPooled)
             : base(isPooled)
         {
@@ -448,17 +508,21 @@ namespace LegendaryTools.Threading
             Type = TaskType.FunctionParameterized;
         }
 
+        public event OnTask2CompleteEventHandler OnTaskCompleteResult;
+
         protected override void NotifyCompleted()
         {
             base.NotifyCompleted();
 
             if (OnTaskCompleteResult != null)
-                OnTaskCompleteResult.Invoke((TResult)Result);
+            {
+                OnTaskCompleteResult.Invoke((TResult) Result);
+            }
         }
 
         protected override void WorkerFunction(object param = null)
         {
-            Result = parameterizedFunc.Invoke((TParam)param);
+            Result = parameterizedFunc.Invoke((TParam) param);
         }
     }
 }

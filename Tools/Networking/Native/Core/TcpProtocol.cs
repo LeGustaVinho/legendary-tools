@@ -1,37 +1,39 @@
 #define DEBUG
 
 using System;
-using System.IO;
-using System.Net.Sockets;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
+using UnityEngine;
 
 namespace LegendaryTools.Networking
 {
     /// <summary>
     /// Common network communication-based logic: sending and receiving of data via TCP.
     /// </summary>
-
     public delegate void OnTcpListenerPacketReceivedEventHandler(Buffer buffer, TcpProtocol source);
+
     public delegate void OnTcpClientPacketReceivedEventHandler(Buffer buffer, IPEndPoint source);
+
     public delegate void OnClientConnectEventHandler(int id, TcpProtocol client);
 
     public class TcpProtocol
     {
-        bool multiThreaded = true;
+        private bool multiThreaded = true;
 
         #region TcpClient Vars
 
         /// <summary>
         /// Protocol version.
         /// </summary>
-
         public const int VERSION = 1;
+
         public const int BUFFER_MAX_SIZE = 8192;
 
-        static protected object clientLockObj = new int();
-        static protected int connectionCounter = 0;
+        protected static object clientLockObj = new int();
+        protected static int connectionCounter;
 
         /// <summary>
         /// All players have a unique identifier given by the server.
@@ -43,26 +45,23 @@ namespace LegendaryTools.Networking
             NotConnected,
             Connecting,
             Verifying,
-            Connected,
+            Connected
         }
 
         /// <summary>
         /// Current connection stage.
         /// </summary>
-
         public ConnectionStatus Status = ConnectionStatus.NotConnected;
 
         /// <summary>
         /// IP end point of whomever we're connected to.
         /// </summary>
-
         public IPEndPoint EndPoint;
 
         /// <summary>
         /// Timestamp of when we received the last message.
         /// </summary>
-
-        public long LastReceivedTime = 0;
+        public long LastReceivedTime;
 
         /// <summary>
         /// How long to allow this player to go without packets before disconnecting them.
@@ -75,24 +74,24 @@ namespace LegendaryTools.Networking
 #endif
 
         // Incoming and outgoing queues
-        Queue<Buffer> inQueue = new Queue<Buffer>();
-        Queue<Buffer> outQueue = new Queue<Buffer>();
+        private Queue<Buffer> inQueue = new Queue<Buffer>();
+        private Queue<Buffer> outQueue = new Queue<Buffer>();
 
         // Buffer used for receiving incoming data
-        byte[] temp = new byte[BUFFER_MAX_SIZE];
+        private byte[] temp = new byte[BUFFER_MAX_SIZE];
 
         // Current incoming buffer
-        Buffer receiveBuffer;
-        int expected = 0;
-        int offset = 0;
-        Socket socket;
-        bool noDelay = false;
-        IPEndPoint fallback;
-        ListLessGarb<Socket> connectingList = new ListLessGarb<Socket>();
-        Thread clientThread;
+        private Buffer receiveBuffer;
+        private int expected;
+        private int offset;
+        private Socket socket;
+        private bool noDelay;
+        private IPEndPoint fallback;
+        private ListLessGarb<Socket> connectingList = new ListLessGarb<Socket>();
+        private Thread clientThread;
 
         // Static as it's temporary
-        static Buffer buffer;
+        private static Buffer buffer;
 
         public event OnTcpClientPacketReceivedEventHandler OnClientPacketReceived;
 
@@ -100,13 +99,13 @@ namespace LegendaryTools.Networking
         /// Whether the connection is currently active.
         /// </summary>
 
-        public bool IsConnected { get { return Status == ConnectionStatus.Connected; } }
+        public bool IsConnected => Status == ConnectionStatus.Connected;
 
         /// <summary>
         /// Whether we are currently trying to establish a new connection.
         /// </summary>
 
-        public bool IsTryingToConnect { get { return connectingList.size != 0; } }
+        public bool IsTryingToConnect => connectingList.size != 0;
 
         /// <summary>
         /// Enable or disable the Nagle's buffering algorithm (aka NO_DELAY flag).
@@ -115,10 +114,7 @@ namespace LegendaryTools.Networking
         /// </summary>
         public bool NoDelay
         {
-            get
-            {
-                return noDelay;
-            }
+            get { return noDelay; }
             set
             {
                 if (noDelay != value)
@@ -135,30 +131,28 @@ namespace LegendaryTools.Networking
         /// Connected target's address.
         /// </summary>
 
-        public string IpAddress { get { return (EndPoint != null) ? EndPoint.ToString() : "0.0.0.0:0"; } }
+        public string IpAddress => EndPoint != null ? EndPoint.ToString() : "0.0.0.0:0";
 
         #endregion
 
         #region TcpListener Vars
 
-        static protected object listenerLockObj = new int();
+        protected static object listenerLockObj = new int();
 
         /// <summary>
         /// List of players in a consecutive order for each looping.
         /// </summary>
-
-        ListLessGarb<TcpProtocol> clients = new ListLessGarb<TcpProtocol>();
+        private ListLessGarb<TcpProtocol> clients = new ListLessGarb<TcpProtocol>();
 
         /// <summary>
         /// Dictionary list of players for easy access by ID.
         /// </summary>
-
         internal Dictionary<int, TcpProtocol> clientsDictionary = new Dictionary<int, TcpProtocol>();
 
-        TcpListener listener;
-        Thread listenerThread;
-        int listenerPort = 0;
-        long time = 0;
+        private TcpListener listener;
+        private Thread listenerThread;
+        private int listenerPort;
+        private long time;
 
         public event OnTcpListenerPacketReceivedEventHandler OnListenerPacketReceived;
         public event OnClientConnectEventHandler OnClientConnect;
@@ -167,19 +161,19 @@ namespace LegendaryTools.Networking
         /// Whether the server is currently actively serving players.
         /// </summary>
 
-        public bool IsActive { get { return listenerThread != null; } }
+        public bool IsActive => listenerThread != null;
 
         /// <summary>
         /// Whether the server is listening for incoming connections.
         /// </summary>
 
-        public bool IsListening { get { return (listener != null); } }
+        public bool IsListening => listener != null;
 
         /// <summary>
         /// Port used for listening to incoming connections. Set when the server is started.
         /// </summary>
 
-        public int Port { get { return (listener != null) ? listenerPort : 0; } }
+        public int Port => listener != null ? listenerPort : 0;
 
         #endregion
 
@@ -188,13 +182,14 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Try to establish a connection with the specified address.
         /// </summary>
-
-        public void Connect(IPEndPoint externalIP) { Connect(externalIP, null); }
+        public void Connect(IPEndPoint externalIP)
+        {
+            Connect(externalIP, null);
+        }
 
         /// <summary>
         /// Try to establish a connection with the specified remote destination.
         /// </summary>
-
         public void Connect(IPEndPoint externalIP, IPEndPoint internalIP)
         {
             Disconnect();
@@ -204,13 +199,15 @@ namespace LegendaryTools.Networking
 
             // Some routers, like Asus RT-N66U don't support NAT Loopback, and connecting to an external IP
             // will connect to the router instead. So if it's a local IP, connect to it first.
-            if (internalIP != null && NetworkUtility.GetSubnet(NetworkUtility.localAddress) == NetworkUtility.GetSubnet(internalIP.Address))
+            if (internalIP != null && NetworkUtility.GetSubnet(NetworkUtility.localAddress) ==
+                NetworkUtility.GetSubnet(internalIP.Address))
             {
                 EndPoint = internalIP;
                 fallback = externalIP;
 
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:Connect(" + externalIP.ToString() + "," + internalIP.ToString() + ") -> Dont support loopback.");
+                Debug.LogWarning("[Client][TcpProtocol:Connect(" + externalIP + "," + internalIP +
+                                 ") -> Dont support loopback.");
 #endif
             }
             else
@@ -219,7 +216,7 @@ namespace LegendaryTools.Networking
                 fallback = internalIP;
 
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:Connect(" + externalIP.ToString() + "," + internalIP.ToString() + ") -> Support loopback.");
+                Debug.Log("[Client][TcpProtocol:Connect(" + externalIP + "," + internalIP + ") -> Support loopback.");
 #endif
             }
 
@@ -229,8 +226,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Try to establish a connection with the current tcpEndPoint.
         /// </summary>
-
-        bool ConnectToTcpEndPoint()
+        private bool ConnectToTcpEndPoint()
         {
             if (EndPoint != null)
             {
@@ -244,7 +240,7 @@ namespace LegendaryTools.Networking
                         connectingList.Add(socket);
                     }
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:ConnectToTcpEndPoint() -> Connecting to endpoint.");
+                    Debug.Log("[Client][TcpProtocol:ConnectToTcpEndPoint() -> Connecting to endpoint.");
 #endif
                     IAsyncResult result = socket.BeginConnect(EndPoint, OnConnectResult, socket);
                     Thread th = new Thread(CancelConnect);
@@ -252,15 +248,16 @@ namespace LegendaryTools.Networking
 
                     return true;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                     Error(ex.Message);
                 }
             }
             else
             {
-                UnityEngine.Debug.LogError("[Client][TcpProtocol:ConnectToTcpEndPoint()] -> Unable to resolve the specified address.");
+                Debug.LogError(
+                    "[Client][TcpProtocol:ConnectToTcpEndPoint()] -> Unable to resolve the specified address.");
                 Error("Unable to resolve the specified address");
             }
 
@@ -270,8 +267,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Try to establish a connection with the fallback end point.
         /// </summary>
-
-        bool ConnectToFallback()
+        private bool ConnectToFallback()
         {
             EndPoint = fallback;
             fallback = null;
@@ -279,25 +275,24 @@ namespace LegendaryTools.Networking
             bool connectResult = ConnectToTcpEndPoint();
 
 #if DEBUG
-            UnityEngine.Debug.Log("[Client][TcpProtocol:ConnectToFallback()] -> Fallback result: " + connectResult);
+            Debug.Log("[Client][TcpProtocol:ConnectToFallback()] -> Fallback result: " + connectResult);
 #endif
 
-            return (EndPoint != null) && connectResult;
+            return EndPoint != null && connectResult;
         }
 
         /// <summary>
         /// Default timeout on a connection attempt it something around 15 seconds, which is ridiculously long.
         /// </summary>
-
-        void CancelConnect(object obj)
+        private void CancelConnect(object obj)
         {
-            IAsyncResult result = (IAsyncResult)obj;
+            IAsyncResult result = (IAsyncResult) obj;
 #if !UNITY_WINRT
             if (result != null && !result.AsyncWaitHandle.WaitOne(3000, true))
             {
                 try
                 {
-                    Socket sock = (Socket)result.AsyncState;
+                    Socket sock = (Socket) result.AsyncState;
 
                     if (sock != null)
                     {
@@ -312,7 +307,7 @@ namespace LegendaryTools.Networking
 
                                 if (!ConnectToFallback())
                                 {
-                                    UnityEngine.Debug.LogError("[Client][TcpProtocol:ConnectToFallback()] -> Unable to connect");
+                                    Debug.LogError("[Client][TcpProtocol:ConnectToFallback()] -> Unable to connect");
                                     Error("Unable to connect");
                                     Close(false);
                                 }
@@ -322,9 +317,9 @@ namespace LegendaryTools.Networking
                         }
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                 }
             }
 #endif
@@ -333,10 +328,9 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Connection attempt result.
         /// </summary>
-
-        void OnConnectResult(IAsyncResult result)
+        private void OnConnectResult(IAsyncResult result)
         {
-            Socket sock = (Socket)result.AsyncState;
+            Socket sock = (Socket) result.AsyncState;
 
             // Windows handles async sockets differently than other platforms, it seems.
             // If a socket is closed, OnConnectResult() is never called on Windows.
@@ -344,7 +338,7 @@ namespace LegendaryTools.Networking
             // then a null exception gets thrown because the socket is not usable by this point.
             if (sock == null)
             {
-                UnityEngine.Debug.LogError("[Client][TcpProtocol:OnConnectResult() -> (socket)result.AsyncState is null");
+                Debug.LogError("[Client][TcpProtocol:OnConnectResult() -> (socket)result.AsyncState is null");
                 return;
             }
 
@@ -359,11 +353,15 @@ namespace LegendaryTools.Networking
                     sock.EndConnect(result);
 #endif
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
 
-                    if (sock == socket) socket = null;
+                    if (sock == socket)
+                    {
+                        socket = null;
+                    }
+
                     sock.Close();
                     errMsg = ex.Message;
                     success = false;
@@ -372,7 +370,8 @@ namespace LegendaryTools.Networking
                 if (success)
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:OnConnectResult() -> Connetion successful. Sending request to verify ID.");
+                    Debug.Log(
+                        "[Client][TcpProtocol:OnConnectResult() -> Connetion successful. Sending request to verify ID.");
 #endif
                     // Request a connection ID
                     Status = ConnectionStatus.Verifying;
@@ -383,32 +382,36 @@ namespace LegendaryTools.Networking
                 }
                 else if (!ConnectToFallback())
                 {
-                    UnityEngine.Debug.LogError("[Client][TcpProtocol:ConnectToFallback() -> " + errMsg);
+                    Debug.LogError("[Client][TcpProtocol:ConnectToFallback() -> " + errMsg);
                     Error(errMsg);
                     Close(false);
                 }
             }
 
             // We are no longer trying to connect via this socket
-            lock (connectingList) connectingList.Remove(sock);
+            lock (connectingList)
+            {
+                connectingList.Remove(sock);
+            }
         }
 
         /// <summary>
         /// Disconnect the instance, freeing all resources.
         /// </summary>
-
-        public void Disconnect() { Disconnect(false); }
+        public void Disconnect()
+        {
+            Disconnect(false);
+        }
 
         /// <summary>
         /// Disconnect the instance, freeing all resources.
         /// </summary>
-
         public void Disconnect(bool notify)
         {
             if (!IsConnected)
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:Disconnect(" + notify + ") -> Not connected.");
+                Debug.LogWarning("[Client][TcpProtocol:Disconnect(" + notify + ") -> Not connected.");
 #endif
                 return;
             }
@@ -422,7 +425,10 @@ namespace LegendaryTools.Networking
                     {
                         Socket sock = connectingList[--i];
                         connectingList.RemoveAt(i);
-                        if (sock != null) sock.Close();
+                        if (sock != null)
+                        {
+                            sock.Close();
+                        }
                     }
                 }
 
@@ -436,15 +442,19 @@ namespace LegendaryTools.Networking
                 if (socket != null)
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:Disconnect(" + notify + ") -> Disconnected.");
+                    Debug.Log("[Client][TcpProtocol:Disconnect(" + notify + ") -> Disconnected.");
 #endif
                     Close(notify || socket.Connected);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogException(ex);
-                lock (connectingList) connectingList.Clear();
+                Debug.LogException(ex);
+                lock (connectingList)
+                {
+                    connectingList.Clear();
+                }
+
                 socket = null;
             }
         }
@@ -452,7 +462,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Close the connection.
         /// </summary>
-
         public void Close(bool notify)
         {
             Status = ConnectionStatus.NotConnected;
@@ -476,30 +485,36 @@ namespace LegendaryTools.Networking
                 try
                 {
                     if (socket.Connected)
+                    {
                         socket.Shutdown(SocketShutdown.Both);
+                    }
 
                     socket.Close();
 
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Closed.");
+                    Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Closed.");
 #endif
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                 }
+
                 socket = null;
 
                 if (notify)
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Sending disconnect message.");
+                    Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Sending disconnect message.");
 #endif
 
                     Buffer buffer = Buffer.Create();
                     buffer.BeginPacket(Packet.Disconnect);
                     buffer.EndTcpPacketWithOffset(4);
-                    lock (inQueue) inQueue.Enqueue(buffer);
+                    lock (inQueue)
+                    {
+                        inQueue.Enqueue(buffer);
+                    }
                 }
             }
         }
@@ -507,11 +522,10 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Release the buffers.
         /// </summary>
-
         public void Release()
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Client][TcpProtocol:Release() -> Released.");
+            Debug.Log("[Client][TcpProtocol:Release() -> Released.");
 #endif
             Close(false);
             Buffer.Recycle(inQueue);
@@ -521,7 +535,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Begin sending a new packet to the server.
         /// </summary>
-
         public BinaryWriter BeginSend(Packet type)
         {
             buffer = Buffer.Create(false);
@@ -531,7 +544,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send the outgoing buffer.
         /// </summary>
-
         public void EndSend()
         {
             buffer.EndPacket();
@@ -542,7 +554,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send the specified packet. Marks the buffer as used.
         /// </summary>
-
         public void SendTcpPacket(Buffer buffer)
         {
             buffer.MarkAsUsed();
@@ -560,16 +571,17 @@ namespace LegendaryTools.Networking
                         try
                         {
 #if DEBUG
-                            UnityEngine.Debug.Log("[Client][TcpProtocol:SendTcpPacket(" + buffer.size + ") -> Sending packed.");
+                            Debug.Log("[Client][TcpProtocol:SendTcpPacket(" + buffer.size + ") -> Sending packed.");
 #endif
                             // If it's the first packet, let's begin the send process
 #if !UNITY_WINRT
-                            socket.BeginSend(buffer.buffer, buffer.position, buffer.size, SocketFlags.None, OnSend, buffer);
+                            socket.BeginSend(buffer.buffer, buffer.position, buffer.size, SocketFlags.None, OnSend,
+                                buffer);
 #endif
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
-                            UnityEngine.Debug.LogException(ex);
+                            Debug.LogException(ex);
                             Error(ex.Message);
                             Close(false);
                             Release();
@@ -580,7 +592,8 @@ namespace LegendaryTools.Networking
             else
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:SendTcpPacket(" + buffer.size + ") -> Socket is null or not connected.");
+                Debug.LogWarning("[Client][TcpProtocol:SendTcpPacket(" + buffer.size +
+                                 ") -> Socket is null or not connected.");
 #endif
                 buffer.Recycle();
             }
@@ -589,13 +602,12 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send completion callback. Recycles the buffer.
         /// </summary>
-
-        void OnSend(IAsyncResult result)
+        private void OnSend(IAsyncResult result)
         {
             if (Status == ConnectionStatus.NotConnected)
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnSend() -> Not connected.");
+                Debug.LogWarning("[Client][TcpProtocol:OnSend() -> Not connected.");
 #endif
                 return;
             }
@@ -605,15 +617,15 @@ namespace LegendaryTools.Networking
             try
             {
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:OnSend() -> End send successful.");
+                Debug.Log("[Client][TcpProtocol:OnSend() -> End send successful.");
 #endif
 #if !UNITY_WINRT
                 bytes = socket.EndSend(result);
 #endif
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
                 bytes = 0;
                 Close(true);
                 Error(ex.Message);
@@ -628,7 +640,7 @@ namespace LegendaryTools.Networking
                 if (bytes > 0 && socket != null && socket.Connected)
                 {
                     // If there is another packet to send out, let's send it
-                    Buffer next = (outQueue.Count == 0) ? null : outQueue.Peek();
+                    Buffer next = outQueue.Count == 0 ? null : outQueue.Peek();
 
                     if (next != null)
                     {
@@ -636,12 +648,12 @@ namespace LegendaryTools.Networking
                         {
                             socket.BeginSend(next.buffer, next.position, next.size, SocketFlags.None, OnSend, next);
 #if DEBUG
-                            UnityEngine.Debug.Log("[Client][TcpProtocol:OnSend() -> Sending another packet.");
+                            Debug.Log("[Client][TcpProtocol:OnSend() -> Sending another packet.");
 #endif
                         }
                         catch (Exception ex)
                         {
-                            UnityEngine.Debug.LogException(ex);
+                            Debug.LogException(ex);
                             Error(ex.Message);
                             Close(false);
                         }
@@ -650,7 +662,7 @@ namespace LegendaryTools.Networking
                 else
                 {
 #if DEBUG
-                    UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnSend() -> Socket is null.");
+                    Debug.LogWarning("[Client][TcpProtocol:OnSend() -> Socket is null.");
 #endif
                     Close(true);
                 }
@@ -661,13 +673,14 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Start receiving incoming messages on the current socket.
         /// </summary>
-
-        public void StartReceiving(bool multiThreaded = true) { StartReceiving(null, multiThreaded); }
+        public void StartReceiving(bool multiThreaded = true)
+        {
+            StartReceiving(null, multiThreaded);
+        }
 
         /// <summary>
         /// Start receiving incoming messages on the specified socket (for example socket accepted via Listen).
         /// </summary>
-
         public void StartReceiving(Socket socket, bool multiThreaded = true)
         {
             this.multiThreaded = multiThreaded;
@@ -678,7 +691,7 @@ namespace LegendaryTools.Networking
                 this.socket = socket;
 
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:StartReceiving() -> Changing socket.");
+                Debug.Log("[Client][TcpProtocol:StartReceiving() -> Changing socket.");
 #endif
             }
 
@@ -691,7 +704,7 @@ namespace LegendaryTools.Networking
                 LastReceivedTime = DateTime.UtcNow.Ticks / 10000;
 
                 // Save the address
-                EndPoint = (IPEndPoint)this.socket.RemoteEndPoint;
+                EndPoint = (IPEndPoint) this.socket.RemoteEndPoint;
 
                 if (multiThreaded)
                 {
@@ -706,12 +719,12 @@ namespace LegendaryTools.Networking
                     this.socket.BeginReceive(temp, 0, temp.Length, SocketFlags.None, OnReceive, this.socket);
 #endif
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:StartReceiving() -> Begin receive.");
+                    Debug.Log("[Client][TcpProtocol:StartReceiving() -> Begin receive.");
 #endif
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                     Error(ex.Message);
                     Disconnect(true);
                 }
@@ -719,7 +732,7 @@ namespace LegendaryTools.Networking
             else
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:StartReceiving() -> Socket is null or not connected.");
+                Debug.LogWarning("[Client][TcpProtocol:StartReceiving() -> Socket is null or not connected.");
 #endif
             }
         }
@@ -727,7 +740,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Extract the first incoming packet.
         /// </summary>
-
         public bool ReceivePacket(out Buffer buffer)
         {
             if (inQueue.Count != 0)
@@ -736,7 +748,7 @@ namespace LegendaryTools.Networking
                 {
                     buffer = inQueue.Dequeue();
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:ReceivePacket(" + buffer.size + ")] - Receiving packet ...");
+                    Debug.Log("[Client][TcpProtocol:ReceivePacket(" + buffer.size + ")] - Receiving packet ...");
 #endif
                     return true;
                 }
@@ -749,24 +761,23 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Receive incoming data.
         /// </summary>
-
-        void OnReceive(IAsyncResult result)
+        private void OnReceive(IAsyncResult result)
         {
             if (Status == ConnectionStatus.NotConnected)
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Not connected.");
+                Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Not connected.");
 #endif
                 return;
             }
 
             int bytes = 0;
-            Socket socket = (Socket)result.AsyncState;
+            Socket socket = (Socket) result.AsyncState;
 
             try
             {
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:OnReceive() -> EndReceive.");
+                Debug.Log("[Client][TcpProtocol:OnReceive() -> EndReceive.");
 #endif
 #if !UNITY_WINRT
                 bytes = socket.EndReceive(result);
@@ -774,22 +785,24 @@ namespace LegendaryTools.Networking
                 if (this.socket != socket)
                 {
 #if DEBUG
-                    UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Current socket is not equals (Socket)result.AsyncState.");
+                    Debug.LogWarning(
+                        "[Client][TcpProtocol:OnReceive() -> Current socket is not equals (Socket)result.AsyncState.");
 #endif
                     return;
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 if (this.socket != socket)
                 {
 #if DEBUG
-                    UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Current socket is not equals (Socket)result.AsyncState.");
+                    Debug.LogWarning(
+                        "[Client][TcpProtocol:OnReceive() -> Current socket is not equals (Socket)result.AsyncState.");
 #endif
                     return;
                 }
 
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
                 Error(ex.Message);
                 Disconnect(true);
                 return;
@@ -800,7 +813,7 @@ namespace LegendaryTools.Networking
             if (bytes == 0)
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Bytes received is 0.");
+                Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Bytes received is 0.");
 #endif
                 Close(true);
             }
@@ -809,7 +822,7 @@ namespace LegendaryTools.Networking
                 if (Status == ConnectionStatus.NotConnected)
                 {
 #if DEBUG
-                    UnityEngine.Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Not connected.");
+                    Debug.LogWarning("[Client][TcpProtocol:OnReceive() -> Not connected.");
 #endif
                     return;
                 }
@@ -821,12 +834,12 @@ namespace LegendaryTools.Networking
                     socket.BeginReceive(temp, 0, temp.Length, SocketFlags.None, OnReceive, socket);
 #endif
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:OnReceive() -> Begin receive again.");
+                    Debug.Log("[Client][TcpProtocol:OnReceive() -> Begin receive again.");
 #endif
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                     Error(ex.Message);
                     Close(false);
                 }
@@ -834,7 +847,7 @@ namespace LegendaryTools.Networking
             else
             {
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:OnReceive() -> ???");
+                Debug.Log("[Client][TcpProtocol:OnReceive() -> ???");
 #endif
                 Close(true);
             }
@@ -843,8 +856,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// See if the received packet can be processed and split it up into different ones.
         /// </summary>
-
-        bool ProcessBuffer(int bytes)
+        private bool ProcessBuffer(int bytes)
         {
             if (receiveBuffer == null)
             {
@@ -854,7 +866,8 @@ namespace LegendaryTools.Networking
                 expected = 0;
                 offset = 0;
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> ReceivedBuffer is null, then creating new buffer.");
+                Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes +
+                          ") -> ReceivedBuffer is null, then creating new buffer.");
 #endif
             }
             else
@@ -862,7 +875,7 @@ namespace LegendaryTools.Networking
                 // Append this data to the end of the last used buffer
                 receiveBuffer.BeginWriting(true).Write(temp, 0, bytes);
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> Appending ReceivedBuffer.");
+                Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> Appending ReceivedBuffer.");
 #endif
             }
 
@@ -876,7 +889,7 @@ namespace LegendaryTools.Networking
                     if (expected < 0 || expected > 16777216)
                     {
 #if DEBUG
-                        UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> ???");
+                        Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> ???");
 #endif
                         // HTTP Get: 542393671
                         Close(true);
@@ -894,22 +907,28 @@ namespace LegendaryTools.Networking
                     receiveBuffer.BeginReading(offset + 4);
 
                     // This packet is now ready to be processed
-                    lock (inQueue) inQueue.Enqueue(receiveBuffer);
+                    lock (inQueue)
+                    {
+                        inQueue.Enqueue(receiveBuffer);
+                    }
 
                     receiveBuffer = null;
                     expected = 0;
                     offset = 0;
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> Entire packet is present.");
+                    Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> Entire packet is present.");
 #endif
                     break;
                 }
-                else if (available > expected)
+
+                if (available > expected)
                 {
                     // There is more than one packet. Extract this packet fully.
                     int realSize = expected + 4;
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> There is more than one packet. Extract this packet fully. RealSize = " + realSize + " | available(" + available + ") > mExpected(" + expected + ")");
+                    Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes +
+                              ") -> There is more than one packet. Extract this packet fully. RealSize = " + realSize +
+                              " | available(" + available + ") > mExpected(" + expected + ")");
 #endif
                     Buffer temp = Buffer.Create();
 
@@ -919,7 +938,10 @@ namespace LegendaryTools.Networking
                     temp.BeginReading(4);
 
                     // This packet is now ready to be processed
-                    lock (inQueue) inQueue.Enqueue(temp);
+                    lock (inQueue)
+                    {
+                        inQueue.Enqueue(temp);
+                    }
 
                     // Skip this packet
                     available -= expected;
@@ -929,7 +951,8 @@ namespace LegendaryTools.Networking
                 else
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> available(" + available + ") < mExpected(" + expected + ")");
+                    Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> available(" + available +
+                              ") < mExpected(" + expected + ")");
 #endif
                     break;
                 }
@@ -941,28 +964,31 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Add an error packet to the incoming queue.
         /// </summary>
-
-        public void Error(string error) { Error(Buffer.Create(), error); }
+        public void Error(string error)
+        {
+            Error(Buffer.Create(), error);
+        }
 
         /// <summary>
         /// Add an error packet to the incoming queue.
         /// </summary>
-
-        void Error(Buffer buffer, string error)
+        private void Error(Buffer buffer, string error)
         {
             buffer.BeginPacket(Packet.Error).Write(error);
             buffer.EndTcpPacketWithOffset(4);
-            lock (inQueue) inQueue.Enqueue(buffer);
+            lock (inQueue)
+            {
+                inQueue.Enqueue(buffer);
+            }
         }
 
         /// <summary>
         /// Verify the connection.
         /// </summary>
-
         public bool VerifyRequestID(Buffer buffer, bool uniqueID)
         {
             BinaryReader reader = buffer.BeginReading();
-            Packet request = (Packet)reader.ReadByte();
+            Packet request = (Packet) reader.ReadByte();
 
             if (request == Packet.RequestID)
             {
@@ -973,15 +999,15 @@ namespace LegendaryTools.Networking
                         Id = uniqueID ? ++connectionCounter : 0;
                     }
 
-                    Status = TcpProtocol.ConnectionStatus.Connected;
+                    Status = ConnectionStatus.Connected;
 
                     BinaryWriter writer = BeginSend(Packet.ResponseID);
                     writer.Write(VERSION);
                     writer.Write(Id);
-                    writer.Write((Int64)(System.DateTime.UtcNow.Ticks / 10000));
+                    writer.Write(DateTime.UtcNow.Ticks / 10000);
                     EndSend();
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:VerifyRequestID()] -> Protocol marked as connected in server. !");
+                    Debug.Log("[Client][TcpProtocol:VerifyRequestID()] -> Protocol marked as connected in server. !");
 #endif
                     return true;
                 }
@@ -991,7 +1017,7 @@ namespace LegendaryTools.Networking
                     writer.Write(0);
                     EndSend();
 #if DEBUG
-                    UnityEngine.Debug.LogWarning("[Client][TcpProtocol:VerifyRequestID()] -> Incorrect version.");
+                    Debug.LogWarning("[Client][TcpProtocol:VerifyRequestID()] -> Incorrect version.");
 #endif
                     Close(false);
                 }
@@ -999,7 +1025,8 @@ namespace LegendaryTools.Networking
             else
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[Client][TcpProtocol:VerifyRequestID(" + buffer.size + ", " + uniqueID + ") -> Packet is not Packet.RequestID");
+                Debug.LogWarning("[Client][TcpProtocol:VerifyRequestID(" + buffer.size + ", " + uniqueID +
+                                 ") -> Packet is not Packet.RequestID");
 #endif
             }
 
@@ -1009,7 +1036,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Verify the connection.
         /// </summary>
-
         public bool VerifyResponseID(Packet packet, BinaryReader reader)
         {
             if (packet == Packet.ResponseID)
@@ -1022,23 +1048,22 @@ namespace LegendaryTools.Networking
                     Status = ConnectionStatus.Connected;
 
 #if DEBUG
-                    UnityEngine.Debug.Log("[Client][TcpProtocol:VerifyRequestID()] -> Protocol marked as connected in client. !");
+                    Debug.Log("[Client][TcpProtocol:VerifyRequestID()] -> Protocol marked as connected in client. !");
 #endif
 
                     return true;
                 }
-                else
-                {
-                    Id = 0;
-                    UnityEngine.Debug.LogError("[Client][TcpProtocol:VerifyResponseID() -> Version mismatch! Server is running a different protocol version!");
-                    Error("Version mismatch! Server is running a different protocol version!");
-                    Close(false);
 
-                    return false;
-                }
+                Id = 0;
+                Debug.LogError(
+                    "[Client][TcpProtocol:VerifyResponseID() -> Version mismatch! Server is running a different protocol version!");
+                Error("Version mismatch! Server is running a different protocol version!");
+                Close(false);
+
+                return false;
             }
 
-            UnityEngine.Debug.LogError("[Client][TcpProtocol:VerifyResponseID() -> Expected a response ID, got " + packet);
+            Debug.LogError("[Client][TcpProtocol:VerifyResponseID() -> Expected a response ID, got " + packet);
             Error("Expected a response ID, got " + packet);
             Close(false);
 
@@ -1048,11 +1073,10 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Call after shutting down the listener.
         /// </summary>
-
         public static void ResetConnectionsCounter()
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Client][TcpProtocol:ResetConnectionsCounter()] - Reseted.");
+            Debug.Log("[Client][TcpProtocol:ResetConnectionsCounter()] - Reseted.");
 #endif
             connectionCounter = 0;
         }
@@ -1060,50 +1084,51 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Process a single incoming packet. Returns whether we should keep processing packets or not.
         /// </summary>
-
-        bool ProcessListenerPacket(Buffer buffer, IPEndPoint ip)
+        private bool ProcessListenerPacket(Buffer buffer, IPEndPoint ip)
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Processing. Status: " + Status.ToString());
+            Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Processing. Status: " + Status);
 #endif
 
             // Verification step must be passed first
-            if (Status == TcpProtocol.ConnectionStatus.Verifying)
+            if (Status == ConnectionStatus.Verifying)
             {
                 BinaryReader reader = buffer.BeginReading();
-                if (buffer.size == 0) return true;
+                if (buffer.size == 0)
+                {
+                    return true;
+                }
 
                 int packetID = reader.ReadByte();
-                Packet response = (Packet)packetID;
+                Packet response = (Packet) packetID;
 
                 if (response == Packet.ResponseID)
                 {
                     if (VerifyResponseID(response, reader))
                     {
 #if DEBUG
-                        UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Verified. Id: " + Id);
+                        Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Verified. Id: " + Id);
 #endif
                         return true;
                     }
-                    else
-                    {
 #if DEBUG
-                        UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Not Verified.");
+                    Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Not Verified.");
 #endif
-                        return false;
-                    }
+                    return false;
                 }
             }
             else if (Status == ConnectionStatus.Connected)
             {
 #if DEBUG
-                UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Packet received.");
+                Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Packet received.");
 #endif
                 if (OnClientPacketReceived != null)
+                {
                     OnClientPacketReceived.Invoke(buffer, ip);
+                }
             }
 #if DEBUG
-            UnityEngine.Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Processed. Status: " + Status.ToString());
+            Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Processed. Status: " + Status);
 #endif
             return true;
         }
@@ -1111,7 +1136,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Process all incoming packets.
         /// </summary>
-
         public void ThreadProcessListenerPackets()
         {
             if (multiThreaded)
@@ -1119,17 +1143,19 @@ namespace LegendaryTools.Networking
                 while (true)
                 {
                     if (!ProcessListenerPackets())
+                    {
                         Thread.Sleep(1);
+                    }
                 }
             }
-            else
-                ProcessListenerPackets();
+
+            ProcessListenerPackets();
         }
 
-        bool ProcessListenerPackets()
+        private bool ProcessListenerPackets()
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Client] - Running ThreadProcessListenerPackets.");
+            Debug.Log("[Client] - Running ThreadProcessListenerPackets.");
 #endif
             bool received = false;
 
@@ -1146,7 +1172,7 @@ namespace LegendaryTools.Networking
                     }
                     catch (Exception ex)
                     {
-                        UnityEngine.Debug.LogException(ex);
+                        Debug.LogException(ex);
                     }
 
                     buffer.Recycle();
@@ -1161,7 +1187,10 @@ namespace LegendaryTools.Networking
         /// </summary>
         public void UpdateClient()
         {
-            if (clientThread == null && socket != null) ThreadProcessListenerPackets();
+            if (clientThread == null && socket != null)
+            {
+                ThreadProcessListenerPackets();
+            }
         }
 
         public bool CheckClientThread()
@@ -1176,7 +1205,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Start listening to incoming connections on the specified port.
         /// </summary>
-
         public bool StartListener(int tcpPort, bool multiThreaded = true)
         {
             this.multiThreaded = multiThreaded;
@@ -1188,13 +1216,14 @@ namespace LegendaryTools.Networking
                 listener = new TcpListener(IPAddress.Any, tcpPort);
                 listener.Start(50);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Error(ex.Message);
                 return false;
             }
 #if DEBUG
-            UnityEngine.Debug.Log("[Listener][TcpProtocol:StartListener()] - Game server started on port " + tcpPort + " using protocol version " + VERSION);
+            Debug.Log("[Listener][TcpProtocol:StartListener()] - Game server started on port " + tcpPort +
+                      " using protocol version " + VERSION);
 #endif
             if (multiThreaded)
             {
@@ -1208,11 +1237,10 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Stop listening to incoming connections and disconnect all players.
         /// </summary>
-
         public void StopListener()
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Listener][TcpProtocol:StopListener()] - Stopped.");
+            Debug.Log("[Listener][TcpProtocol:StopListener()] - Stopped.");
 #endif
 
             // Stop the worker thread
@@ -1230,34 +1258,37 @@ namespace LegendaryTools.Networking
             }
 
             // Player counter should be reset
-            TcpProtocol.ResetConnectionsCounter();
+            ResetConnectionsCounter();
         }
 
         /// <summary>
         /// Stop listening to incoming connections but keep the server running.
         /// </summary>
-
-        public void RefuseConnections() { listenerPort = 0; }
+        public void RefuseConnections()
+        {
+            listenerPort = 0;
+        }
 
         /// <summary>
         /// Thread that will be processing incoming data.
         /// </summary>
-
-        void ThreadProcessClientPackets()
+        private void ThreadProcessClientPackets()
         {
-            if(multiThreaded)
+            if (multiThreaded)
             {
-                while(true)
+                while (true)
                 {
                     if (!ProcessClientPackets())
+                    {
                         Thread.Sleep(1);
+                    }
                 }
             }
-            else
-                ProcessClientPackets();
+
+            ProcessClientPackets();
         }
 
-        bool ProcessClientPackets()
+        private bool ProcessClientPackets()
         {
             bool received = false;
 
@@ -1284,7 +1315,7 @@ namespace LegendaryTools.Networking
                     }
                 }
 #if DEBUG
-                UnityEngine.Debug.Log("[Listener] - Running ThreadProcessClientPackets. Clients: " + clients.size);
+                Debug.Log("[Listener] - Running ThreadProcessClientPackets. Clients: " + clients.size);
 #endif
                 // Process player connections next
                 for (int i = 0; i < clients.size;)
@@ -1301,11 +1332,13 @@ namespace LegendaryTools.Networking
                                 try
                                 {
                                     if (ProcessClientPacket(buffer, client))
+                                    {
                                         received = true;
+                                    }
                                 }
-                                catch (System.Exception ex)
+                                catch (Exception ex)
                                 {
-                                    UnityEngine.Debug.LogException(ex);
+                                    Debug.LogException(ex);
                                     Error("(Listener ThreadFunction Process) " + ex.Message + "\n" + ex.StackTrace);
                                     RemoveClient(client);
                                 }
@@ -1313,7 +1346,9 @@ namespace LegendaryTools.Networking
                             else
                             {
                                 if (ProcessClientPacket(buffer, client))
+                                {
                                     received = true;
+                                }
                             }
                         }
 
@@ -1351,14 +1386,18 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Call this function when you've disabled multi-threading.
         /// </summary>
-
-        public void UpdateListener() { if (listenerThread == null && listener != null) ThreadProcessClientPackets(); }
+        public void UpdateListener()
+        {
+            if (listenerThread == null && listener != null)
+            {
+                ThreadProcessClientPackets();
+            }
+        }
 
         /// <summary>
         /// Add a new player entry.
         /// </summary>
-
-        TcpProtocol AddClient(Socket socket)
+        private TcpProtocol AddClient(Socket socket)
         {
             TcpProtocol client = new TcpProtocol();
             client.StartReceiving(socket);
@@ -1369,8 +1408,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Remove the specified player.
         /// </summary>
-
-        void RemoveClient(TcpProtocol client)
+        private void RemoveClient(TcpProtocol client)
         {
             if (client != null)
             {
@@ -1381,7 +1419,6 @@ namespace LegendaryTools.Networking
                 {
                     if (clientsDictionary.Remove(client.Id))
                     {
-
                     }
 
                     client.Id = 0;
@@ -1392,8 +1429,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Retrieve a player by their ID.
         /// </summary>
-
-        TcpProtocol GetClient(int id)
+        private TcpProtocol GetClient(int id)
         {
             TcpProtocol p = null;
             clientsDictionary.TryGetValue(id, out p);
@@ -1405,32 +1441,35 @@ namespace LegendaryTools.Networking
         /// </summary>
         public void SendToClient(int id, Buffer buffer)
         {
-            if(clientsDictionary.ContainsKey(id))
+            if (clientsDictionary.ContainsKey(id))
+            {
                 clientsDictionary[id].SendTcpPacket(buffer);
+            }
         }
 
         /// <summary>
-	    /// Receive and process a single incoming packet.
-	    /// Returns 'true' if a packet was received, 'false' otherwise.
-	    /// </summary>
-
-        bool ProcessClientPacket(Buffer buffer, TcpProtocol client)
+        /// Receive and process a single incoming packet.
+        /// Returns 'true' if a packet was received, 'false' otherwise.
+        /// </summary>
+        private bool ProcessClientPacket(Buffer buffer, TcpProtocol client)
         {
 #if DEBUG
-            UnityEngine.Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Processing. Status: " + client.Status.ToString());
+            Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Processing. Status: " + client.Status);
 #endif
             // If the player has not yet been verified, the first packet must be an ID request
-            if (client.Status == TcpProtocol.ConnectionStatus.Verifying)
+            if (client.Status == ConnectionStatus.Verifying)
             {
                 if (client.VerifyRequestID(buffer, true))
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Client verified. Id: " + client.Id);
+                    Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Client verified. Id: " + client.Id);
 #endif
                     clientsDictionary.Add(client.Id, client);
 
                     if (OnClientConnect != null)
+                    {
                         OnClientConnect.Invoke(client.Id, client);
+                    }
 
                     return true;
                 }
@@ -1438,16 +1477,19 @@ namespace LegendaryTools.Networking
                 RemoveClient(client);
                 return false;
             }
-            else if (client.Status == TcpProtocol.ConnectionStatus.Connected)
+
+            if (client.Status == ConnectionStatus.Connected)
             {
-                UnityEngine.Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Packet received.");
+                Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Packet received.");
 
                 if (OnListenerPacketReceived != null)
+                {
                     OnListenerPacketReceived.Invoke(buffer, client);
+                }
             }
 
 #if DEBUG
-            UnityEngine.Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Processed. Status: " + client.Status.ToString());
+            Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Processed. Status: " + client.Status);
 #endif
             return true;
         }

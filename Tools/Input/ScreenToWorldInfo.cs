@@ -1,103 +1,72 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 namespace LegendaryTools.Input
 {
     public delegate void On3DWorldHitEventHandler(RaycastHit HitInfo);
+
     public delegate void On2DWorldHitEventHandler(RaycastHit2D HitInfo);
 
     [RequireComponent(typeof(Camera))]
     public class ScreenToWorldInfo : MonoBehaviour
     {
-        public enum Mode { Physics3D, Physics2D };
-        public enum EventTriggerType { PointerMove, PointerUp, PointerDown }
+        public enum EventTriggerType
+        {
+            PointerMove,
+            PointerUp,
+            PointerDown
+        }
+
+        public enum Mode
+        {
+            Physics3D,
+            Physics2D
+        }
+
+        public Camera Camera;
 
         public bool CanInput = true;
 
-        public bool ShowDebug = true;
-
-        public Camera Camera;
-        public KeyCode TriggerKey = KeyCode.Mouse0;
-
-        public EventTriggerType EventTrigger;
-
-        public Mode RayCastMode;
-
         public LayerMask CullingMask;
 
-        [HideInInspector] 
-        public RaycastHit HitInfo;
-
-        [HideInInspector] 
-        public RaycastHit2D HitInfo2D;
+        public EventTriggerType EventTrigger;
 
 
         public bool HasSomething;
 
-        public Transform Transform
-        {
-            get { return RayCastMode == Mode.Physics3D ? HitInfo.transform : HitInfo2D.transform; }
-        }
+        [HideInInspector] public RaycastHit HitInfo;
 
-        public float Distance
-        {
-            get { return RayCastMode == Mode.Physics3D ? HitInfo.distance : HitInfo2D.distance; }
-        }
+        [HideInInspector] public RaycastHit2D HitInfo2D;
 
-        public Vector3 Position
-        {
-            get { return RayCastMode == Mode.Physics3D ? HitInfo.point : (Vector3)HitInfo2D.point; }
-        }
+        public Mode RayCastMode;
 
-        public Vector3 Normal
-        {
-            get { return RayCastMode == Mode.Physics3D ? HitInfo.normal : (Vector3)HitInfo2D.normal; }
-        }
+        public bool ShowDebug = true;
+        public KeyCode TriggerKey = KeyCode.Mouse0;
 
-        public Collider Collider
-        {
-            get { return HitInfo.collider; }
-        }
+        public Transform Transform => RayCastMode == Mode.Physics3D ? HitInfo.transform : HitInfo2D.transform;
 
-        public Vector2 TextureCoords
-        {
-            get { return HitInfo.textureCoord; }
-        }
+        public float Distance => RayCastMode == Mode.Physics3D ? HitInfo.distance : HitInfo2D.distance;
 
-        public Vector2 TextureCoords2
-        {
-            get { return HitInfo.textureCoord2; }
-        }
+        public Vector3 Position => RayCastMode == Mode.Physics3D ? HitInfo.point : (Vector3) HitInfo2D.point;
 
-        public Rigidbody Rigidbody
-        {
-            get { return HitInfo.rigidbody; }
-        }
+        public Vector3 Normal => RayCastMode == Mode.Physics3D ? HitInfo.normal : (Vector3) HitInfo2D.normal;
 
-        public int TriangleIndex
-        {
-            get { return HitInfo.triangleIndex; }
-        }
+        public Collider Collider => HitInfo.collider;
 
-        public Vector2 Centroid
-        {
-            get { return HitInfo2D.centroid; }
-        }
+        public Vector2 TextureCoords => HitInfo.textureCoord;
 
-        public Collider2D Collider2D
-        {
-            get { return HitInfo2D.collider; }
-        }
+        public Vector2 TextureCoords2 => HitInfo.textureCoord2;
 
-        public float Fraction
-        {
-            get { return HitInfo2D.fraction; }
-        }
+        public Rigidbody Rigidbody => HitInfo.rigidbody;
 
-        public Rigidbody2D Rigidbody2D
-        {
-            get { return HitInfo2D.rigidbody; }
-        }
+        public int TriangleIndex => HitInfo.triangleIndex;
+
+        public Vector2 Centroid => HitInfo2D.centroid;
+
+        public Collider2D Collider2D => HitInfo2D.collider;
+
+        public float Fraction => HitInfo2D.fraction;
+
+        public Rigidbody2D Rigidbody2D => HitInfo2D.rigidbody;
 
         public event On3DWorldHitEventHandler On3DHit;
         public event On2DWorldHitEventHandler On2DHit;
@@ -109,7 +78,7 @@ namespace LegendaryTools.Input
             {
                 switch (EventTrigger)
                 {
-                    case EventTriggerType.PointerMove: 
+                    case EventTriggerType.PointerMove:
 #if UNITY_ANDROID || UNITY_IPHONE
                         foreach (Touch touch in UnityEngine.Input.touches)
                             LauchRay(touch.position);
@@ -118,7 +87,7 @@ namespace LegendaryTools.Input
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBPLAYER
                         lauchRay(UnityEngine.Input.mousePosition);
 #endif
-                    break;
+                        break;
                     case EventTriggerType.PointerUp:
 
 #if UNITY_ANDROID || UNITY_IPHONE
@@ -130,10 +99,12 @@ namespace LegendaryTools.Input
 #endif
 
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBPLAYER
-                        if(UnityEngine.Input.GetKeyUp(TriggerKey))
+                        if (UnityEngine.Input.GetKeyUp(TriggerKey))
+                        {
                             lauchRay(UnityEngine.Input.mousePosition);
+                        }
 #endif
-                    break;
+                        break;
                     case EventTriggerType.PointerDown:
 #if UNITY_ANDROID || UNITY_IPHONE
                         foreach (Touch touch in UnityEngine.Input.touches)
@@ -145,9 +116,11 @@ namespace LegendaryTools.Input
 
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBPLAYER
                         if (UnityEngine.Input.GetKeyDown(TriggerKey))
+                        {
                             lauchRay(UnityEngine.Input.mousePosition);
+                        }
 #endif
-                    break;
+                        break;
                 }
             }
         }
@@ -157,19 +130,25 @@ namespace LegendaryTools.Input
             Ray ray = Camera.ScreenPointToRay(position);
 
             if (ShowDebug)
+            {
                 Debug.DrawRay(ray.origin, ray.direction * 100, Color.blue);
+            }
 
-            if (RayCastMode == ScreenToWorldInfo.Mode.Physics3D)
+            if (RayCastMode == Mode.Physics3D)
             {
                 if (Physics.Raycast(ray, out HitInfo, Mathf.Infinity, CullingMask.value))
                 {
-                    if(ShowDebug)
+                    if (ShowDebug)
+                    {
                         Debug.DrawLine(transform.position, HitInfo.point, Color.red, 1);
+                    }
 
                     HasSomething = true;
 
                     if (On3DHit != null)
+                    {
                         On3DHit.Invoke(HitInfo);
+                    }
                 }
                 else
                 {
@@ -183,12 +162,16 @@ namespace LegendaryTools.Input
                 if (HitInfo2D.collider != null)
                 {
                     if (ShowDebug)
+                    {
                         Debug.DrawLine(transform.position, HitInfo.point, Color.red, 1);
+                    }
 
                     HasSomething = true;
 
                     if (On2DHit != null)
+                    {
                         On2DHit.Invoke(HitInfo2D);
+                    }
                 }
                 else
                 {

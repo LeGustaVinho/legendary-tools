@@ -1,30 +1,47 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
 using LegendaryTools.Pathfinding;
+using UnityEngine;
 
 namespace LegendaryTools.Grid
 {
     public class HexMapView : MonoBehaviour, IAStar<Hex>
     {
-        [System.Serializable]
-        public struct WorldHexLine
-        {
-            public Transform PointA;
-            public Transform PointB;
-        }
-
-        public HexMap HexMap;
-
-        public AStar<Hex> Pathfinding;
-        public WorldHexLine[] LineWalls;
         public WorldHexLine AgentStartEnd;
 
-        private HashSet<Hex> Walls = new HashSet<Hex>();
-        private HashSet<Hex> Path = new HashSet<Hex>();
+        public HexMap HexMap;
+        public WorldHexLine[] LineWalls;
         private List<Hex> neighborsBuffer = new List<Hex>();
+        private HashSet<Hex> Path = new HashSet<Hex>();
+
+        public AStar<Hex> Pathfinding;
+
+        private HashSet<Hex> Walls = new HashSet<Hex>();
+
+        public int MapLocationsAmount => HexMap.Count;
+
+        public Hex[] Neighbors(Hex node)
+        {
+            neighborsBuffer.Clear();
+
+            foreach (Hex current in HexMap.Neighbors(node))
+            {
+                if (!Walls.Contains(current))
+                {
+                    neighborsBuffer.Add(current);
+                }
+            }
+
+            return neighborsBuffer.ToArray();
+        }
+
+        public float Heuristic(Hex nodeA, Hex nodeB)
+        {
+            return 0;
+        }
 
         // Update is called once per frame
-        void OnDrawGizmos()
+        private void OnDrawGizmos()
         {
             if (HexMap == null)
             {
@@ -78,24 +95,11 @@ namespace LegendaryTools.Grid
             }
         }
 
-        public Hex[] Neighbors(Hex node)
+        [Serializable]
+        public struct WorldHexLine
         {
-            neighborsBuffer.Clear();
-
-            foreach (Hex current in HexMap.Neighbors(node))
-            {
-                if (!Walls.Contains(current))
-                    neighborsBuffer.Add(current);
-            }
-
-            return neighborsBuffer.ToArray();
+            public Transform PointA;
+            public Transform PointB;
         }
-
-        public float Heuristic(Hex nodeA, Hex nodeB)
-        {
-            return 0;
-        }
-
-        public int MapLocationsAmount => HexMap.Count;
     }
 }

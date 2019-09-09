@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace LegendaryTools
+﻿namespace LegendaryTools
 {
     public static class CurveUtil
     {

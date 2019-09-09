@@ -1,24 +1,38 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
+using UnityEngine;
 
 namespace LegendaryTools
 {
     public class LookAt : MonoBehaviour
     {
-        public Transform Target;
+        public enum LookAxis
+        {
+            Up,
+            Down,
+            Left,
+            Right,
+            Forward,
+            Back
+        }
 
-        public enum LookAxis { Up, Down, Left, Right, Forward, Back };
         [Flags]
-        public enum LookConstraint { X = 1, Y = 2, Z = 4};
+        public enum LookConstraint
+        {
+            X = 1,
+            Y = 2,
+            Z = 4
+        }
 
-        public bool ReverseFace = false;
         public LookAxis Axis = LookAxis.Up;
         public LookConstraint Constraint;
-        public bool UpdateCycle;
+
+        public bool ReverseFace;
+        public Transform Target;
 
         private Quaternion targetRotation;
-        private Vector3 vector3Buffer;
         private Transform Transform;
+        public bool UpdateCycle;
+        private Vector3 vector3Buffer;
 
         // return a direction based upon chosen axis
         public Vector3 GetAxis(LookAxis refAxis)
@@ -41,21 +55,31 @@ namespace LegendaryTools
             return Vector3.up;
         }
 
-        void Awake()
+        private void Awake()
         {
             Transform = transform;
             Update();
         }
 
-        void Update()
+        private void Update()
         {
             if (UpdateCycle)
             {
-                targetRotation = Quaternion.LookRotation(ReverseFace ? Transform.position - Target.position : Target.position - Transform.position, GetAxis(Axis));
+                targetRotation =
+                    Quaternion.LookRotation(
+                        ReverseFace ? Transform.position - Target.position : Target.position - Transform.position,
+                        GetAxis(Axis));
 
-                vector3Buffer.Set(FlagUtil.Has((int)Constraint, (int)LookConstraint.X) ? Transform.rotation.eulerAngles.x : targetRotation.eulerAngles.x,
-                    FlagUtil.Has((int)Constraint, (int)LookConstraint.Y) ? Transform.rotation.eulerAngles.y : targetRotation.eulerAngles.y,
-                    FlagUtil.Has((int)Constraint, (int)LookConstraint.Z) ? Transform.rotation.eulerAngles.z : targetRotation.eulerAngles.z);
+                vector3Buffer.Set(
+                    FlagUtil.Has((int) Constraint, (int) LookConstraint.X)
+                        ? Transform.rotation.eulerAngles.x
+                        : targetRotation.eulerAngles.x,
+                    FlagUtil.Has((int) Constraint, (int) LookConstraint.Y)
+                        ? Transform.rotation.eulerAngles.y
+                        : targetRotation.eulerAngles.y,
+                    FlagUtil.Has((int) Constraint, (int) LookConstraint.Z)
+                        ? Transform.rotation.eulerAngles.z
+                        : targetRotation.eulerAngles.z);
 
                 Transform.rotation = Quaternion.Euler(vector3Buffer);
             }

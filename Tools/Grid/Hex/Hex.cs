@@ -8,13 +8,13 @@ namespace LegendaryTools.Grid
         public readonly int R;
         public readonly int S;
 
-        private static readonly Hex[] diagonals = new Hex[]
+        private static readonly Hex[] diagonals =
         {
             new Hex(2, -1, -1), new Hex(1, -2, 1), new Hex(-1, -1, 2), new Hex(-2, 1, 1), new Hex(-1, 2, -1),
             new Hex(1, 1, -2)
         };
 
-        private static readonly Hex[] directions = new Hex[]
+        private static readonly Hex[] directions =
         {
             new Hex(1, 0, -1), new Hex(1, -1, 0), new Hex(0, -1, 1), new Hex(-1, 0, 1), new Hex(-1, 1, 0),
             new Hex(0, 1, -1)
@@ -22,18 +22,24 @@ namespace LegendaryTools.Grid
 
         public Hex(int q, int r, int s)
         {
-            this.Q = q;
-            this.R = r;
-            this.S = s;
-            if (q + r + s != 0) throw new ArgumentException("q + r + s must be 0");
+            Q = q;
+            R = r;
+            S = s;
+            if (q + r + s != 0)
+            {
+                throw new ArgumentException("q + r + s must be 0");
+            }
         }
 
         public Hex(int q, int r)
         {
-            this.Q = q;
-            this.R = r;
-            this.S = -q - r;
-            if (q + r + S != 0) throw new ArgumentException("q + r + s must be 0");
+            Q = q;
+            R = r;
+            S = -q - r;
+            if (q + r + S != 0)
+            {
+                throw new ArgumentException("q + r + s must be 0");
+            }
         }
 
         public Hex Add(Hex b)
@@ -61,24 +67,24 @@ namespace LegendaryTools.Grid
             return new Hex(-R, -S, -Q);
         }
 
-        static public Hex Direction(int direction)
+        public static Hex Direction(int direction)
         {
-            return Hex.directions[direction];
+            return directions[direction];
         }
 
         public Hex Neighbor(int direction)
         {
-            return Add(Hex.Direction(direction));
+            return Add(Direction(direction));
         }
 
         public Hex DiagonalNeighbor(int direction)
         {
-            return Add(Hex.diagonals[direction]);
+            return Add(diagonals[direction]);
         }
 
         public int Length()
         {
-            return (int) ((Math.Abs(Q) + Math.Abs(R) + Math.Abs(S)) / 2);
+            return (Math.Abs(Q) + Math.Abs(R) + Math.Abs(S)) / 2;
         }
 
         public int Distance(Hex b)
@@ -101,7 +107,7 @@ namespace LegendaryTools.Grid
         {
             int hashCode1 = R.GetHashCode();
             int hashCode2 = S.GetHashCode();
-            return this.Q.GetHashCode() ^ hashCode1 << 4 ^ hashCode1 >> 28 ^ hashCode2 >> 4 ^ hashCode2 << 28;
+            return Q.GetHashCode() ^ (hashCode1 << 4) ^ (hashCode1 >> 28) ^ (hashCode2 >> 4) ^ (hashCode2 << 28);
         }
 
         public override string ToString()

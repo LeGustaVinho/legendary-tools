@@ -1,16 +1,17 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace LegendaryTools.UI
 {
-    [System.Serializable]
+    [Serializable]
     public class DraggingObject
     {
         public int ID;
         public UIDrag Object;
-        public RectTransform Plane;
+        public bool OnDrop;
 
-        public bool OnEndDrag = false;
-        public bool OnDrop = false;
+        public bool OnEndDrag;
+        public RectTransform Plane;
 
         public DraggingObject(int id, UIDrag theObject, RectTransform plane = null)
         {

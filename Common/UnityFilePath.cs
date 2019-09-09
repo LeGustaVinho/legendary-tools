@@ -8,7 +8,7 @@ namespace LegendaryTools
         Data,
         Persistent,
         StreamingAssets,
-        TemporaryCache,
+        TemporaryCache
     }
 
     [Serializable]
@@ -25,17 +25,16 @@ namespace LegendaryTools
         public string FileName;
         public string Extension;
 
-        public string Path
-        {
-            get { return string.IsNullOrEmpty(PostRootPath) ? FormatSlashs(string.Format(FILEPATH_FORMAT2, ResolvedRootPathType, ResolvedFileName))
-                    : FormatSlashs(string.Format(FILEPATH_FORMAT1, ResolvedRootPathType, PostRootPath, ResolvedFileName)); }
-        }
+        public string Path =>
+            string.IsNullOrEmpty(PostRootPath)
+                ? FormatSlashs(string.Format(FILEPATH_FORMAT2, ResolvedRootPathType, ResolvedFileName))
+                : FormatSlashs(string.Format(FILEPATH_FORMAT1, ResolvedRootPathType, PostRootPath, ResolvedFileName));
 
         private string ResolvedRootPathType
         {
             get
             {
-                switch(RootPathType)
+                switch (RootPathType)
                 {
                     case UnityFilePathType.Data: return Application.dataPath;
                     case UnityFilePathType.Persistent: return Application.persistentDataPath;
@@ -47,17 +46,19 @@ namespace LegendaryTools
             }
         }
 
-        private string ResolvedFileName
-        {
-            get { return string.IsNullOrEmpty(Extension) ? FileName : string.Format(FILENAME_WITH_EXTENSION_FORMAT, string.IsNullOrEmpty(FileName) ? DEFAULT_UNNAMED_FILE : FileName, Extension); }
-        }
+        private string ResolvedFileName => string.IsNullOrEmpty(Extension)
+            ? FileName
+            : string.Format(FILENAME_WITH_EXTENSION_FORMAT,
+                string.IsNullOrEmpty(FileName) ? DEFAULT_UNNAMED_FILE : FileName, Extension);
 
         private string FormatSlashs(string path)
         {
-            if(UseBackwardsSlash)
-                return path.Replace('/', '\\'); 
-            else
-                return path.Replace('\\', '/');
+            if (UseBackwardsSlash)
+            {
+                return path.Replace('/', '\\');
+            }
+
+            return path.Replace('\\', '/');
         }
     }
 }

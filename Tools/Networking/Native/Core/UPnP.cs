@@ -1,13 +1,12 @@
 using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Text;
-
+using System.Threading;
+using UnityEngine;
 // Unity has an outdated version of Mono that doesn't have the NetworkInformation namespace.
 #if !UNITY_3_4 && !UNITY_3_5 && !UNITY_4_0 && !UNITY_4_1 && !UNITY_4_2 && !UNITY_4_3 && !UNITY_4_5 && !UNITY_4_6
-using System.Net.NetworkInformation;
+
 #endif
 
 namespace LegendaryTools.Networking
@@ -23,73 +22,65 @@ namespace LegendaryTools.Networking
     /// 
     /// Don't worry about closing ports. This class will do it for you when its instance gets destroyed.
     /// </summary>
-
     public class UPnP
     {
+        public delegate void OnPortRequest(UPnP up, int port, ProtocolType protocol, bool success);
+
         public enum Status
         {
             Inactive,
             Searching,
             Success,
-            Failure,
+            Failure
         }
 
-        Status mStatus = Status.Inactive;
-        IPAddress mGatewayAddress = IPAddress.None;
-        Thread mDiscover = null;
+        private string mControlURL;
+        private Thread mDiscover;
+        private IPAddress mGatewayAddress = IPAddress.None;
 
-        string mGatewayURL = null;
-        string mControlURL = null;
-        string mServiceType = null;
-        ListLessGarb<Thread> mThreads = new ListLessGarb<Thread>();
-        ListLessGarb<int> mPorts = new ListLessGarb<int>();
+        private string mGatewayURL;
+        private ListLessGarb<int> mPorts = new ListLessGarb<int>();
+        private string mServiceType;
 
-        public delegate void OnPortRequest(UPnP up, int port, ProtocolType protocol, bool success);
-
-        class ExtraParams
-        {
-            public Thread th;
-            public string action;
-            public string request;
-            public int port;
-            public ProtocolType protocol;
-            public OnPortRequest callback;
-        }
+        private Status mStatus = Status.Inactive;
+        private ListLessGarb<Thread> mThreads = new ListLessGarb<Thread>();
 
         /// <summary>
         /// Name that will show up on the gateway's list.
         /// </summary>
-
         public string name = "LegendaryNet";
 
         /// <summary>
         /// Current UPnP status.
         /// </summary>
 
-        public Status status { get { return mStatus; } }
+        public Status status => mStatus;
 
         /// <summary>
         /// Gateway's IP address, such as 192.168.1.1
         /// </summary>
 
-        public IPAddress gatewayAddress { get { return mGatewayAddress; } }
+        public IPAddress gatewayAddress => mGatewayAddress;
 
         /// <summary>
         /// Whether there are threads active.
         /// </summary>
 
-        public bool hasThreadsActive { get { return mThreads.size > 0; } }
+        public bool hasThreadsActive => mThreads.size > 0;
 
         /// <summary>
         /// Wait for all threads to finish.
         /// </summary>
-
-        ~UPnP() { mDiscover = null; Close(); WaitForThreads(); }
+        ~UPnP()
+        {
+            mDiscover = null;
+            Close();
+            WaitForThreads();
+        }
 
         /// <summary>
         /// Close all ports that we've opened.
         /// </summary>
-
         public void Close()
         {
             lock (mThreads)
@@ -109,8 +100,8 @@ namespace LegendaryTools.Networking
             for (int i = mPorts.size; i > 0;)
             {
                 int id = mPorts[--i];
-                int port = (id >> 8);
-                bool tcp = ((id & 1) == 1);
+                int port = id >> 8;
+                bool tcp = (id & 1) == 1;
                 Close(port, tcp, null);
             }
         }
@@ -118,32 +109,32 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Wait for all threads to finish.
         /// </summary>
-
         public void WaitForThreads()
         {
             for (int i = 0; mThreads.size > 0 && i < 2000; ++i)
+            {
                 Thread.Sleep(1);
+            }
         }
 
         /// <summary>
         /// Gateway lobby logic is done on a separate thread so that it's not blocking the main thread.
         /// </summary>
-
-        void ThreadDiscover(object obj)
+        private void ThreadDiscover(object obj)
         {
-            Thread th = (Thread)obj;
+            Thread th = (Thread) obj;
 
             string request = "M-SEARCH * HTTP/1.1\r\n" +
-                            "HOST: 239.255.255.250:1900\r\n" +
-                            "ST:upnp:rootdevice\r\n" +
-                            "MAN:\"ssdp:discover\"\r\n" +
-                            "MX:3\r\n\r\n";
+                             "HOST: 239.255.255.250:1900\r\n" +
+                             "ST:upnp:rootdevice\r\n" +
+                             "MAN:\"ssdp:discover\"\r\n" +
+                             "MX:3\r\n\r\n";
 
             byte[] requestBytes = Encoding.ASCII.GetBytes(request);
-            int port = 10000 + (int)(DateTime.UtcNow.Ticks % 45000);
+            int port = 10000 + (int) (DateTime.UtcNow.Ticks % 45000);
             ListLessGarb<IPAddress> ips = NetworkUtility.localAddresses;
 
-            UnityEngine.Debug.Log("[UPnP:ThreadDiscover()] -> Running. Status: " + mStatus + " | IPs count: " + ips.Count);
+            Debug.Log("[UPnP:ThreadDiscover()] -> Running. Status: " + mStatus + " | IPs count: " + ips.Count);
 
             // UPnP discovery should happen on all network interfaces
             for (int i = 0; i < ips.size; ++i)
@@ -177,52 +168,67 @@ namespace LegendaryTools.Networking
                             {
                                 mGatewayAddress = sourceAddress.Address;
 #if UNITY_EDITOR
-                                UnityEngine.Debug.Log("[TNet] UPnP Gateway: " + mGatewayAddress);
+                                Debug.Log("[TNet] UPnP Gateway: " + mGatewayAddress);
 #endif
                                 mStatus = Status.Success;
                                 mThreads.Remove(th);
                             }
+
                             mDiscover = null;
                             return;
                         }
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                 }
 
-                if (receiver != null) receiver.Close();
+                if (receiver != null)
+                {
+                    receiver.Close();
+                }
 
                 lock (mThreads)
                 {
                     mStatus = Status.Failure;
                     mThreads.Remove(th);
                 }
+
                 mDiscover = null;
 
                 // If we found one, we're done
-                if (mStatus == Status.Success) break;
+                if (mStatus == Status.Success)
+                {
+                    break;
+                }
             }
 
             if (mStatus != Status.Success)
             {
-                UnityEngine.Debug.LogWarning("[UPnP:ThreadDiscover()] -> UPnP discovery failed. TNet won't be able to open ports automatically.");
+                Debug.LogWarning(
+                    "[UPnP:ThreadDiscover()] -> UPnP discovery failed. TNet won't be able to open ports automatically.");
             }
         }
 
         /// <summary>
         /// Parse the response to the UPnP discovery message.
         /// </summary>
-
-        bool ParseResponse(string response)
+        private bool ParseResponse(string response)
         {
             // Find the "Location" header
             int index = response.IndexOf("LOCATION:", StringComparison.OrdinalIgnoreCase);
-            if (index == -1) return false;
+            if (index == -1)
+            {
+                return false;
+            }
+
             index += 9;
             int end = response.IndexOf('\r', index);
-            if (end == -1) return false;
+            if (end == -1)
+            {
+                return false;
+            }
 
             // Base URL: http://192.168.1.1:2555/upnp/f3710630-b3ce-348c-b5a5-4c9d74f6ee99/desc.xml
             string baseURL = response.Substring(index, end - index).Trim();
@@ -239,11 +245,13 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Get the port control URL from the gateway.
         /// </summary>
-
-        bool GetControlURL(string url)
+        private bool GetControlURL(string url)
         {
             string response = NetworkUtility.GetResponse(WebRequest.Create(url));
-            if (string.IsNullOrEmpty(response)) return false;
+            if (string.IsNullOrEmpty(response))
+            {
+                return false;
+            }
 
             // For me the full hierarchy of nodes was:
             // root -> device -> deviceList -> device (again) -> deviceList (again) -> service,
@@ -260,18 +268,31 @@ namespace LegendaryTools.Networking
             {
                 mServiceType = "WANPPPConnection";
                 offset = response.IndexOf(mServiceType);
-                if (offset == -1) return false;
+                if (offset == -1)
+                {
+                    return false;
+                }
             }
 
             int end = response.IndexOf("</service>", offset);
-            if (end == -1) return false;
+            if (end == -1)
+            {
+                return false;
+            }
 
             int start = response.IndexOf("<controlURL>", offset, end - offset);
-            if (start == -1) return false;
+            if (start == -1)
+            {
+                return false;
+            }
+
             start += 12;
 
             end = response.IndexOf("</controlURL>", start, end - start);
-            if (end == -1) return false;
+            if (end == -1)
+            {
+                return false;
+            }
 
             // Final URL
             mControlURL = mGatewayURL + response.Substring(start, end - start);
@@ -282,15 +303,17 @@ namespace LegendaryTools.Networking
         /// Send a SOAP request to the gateway.
         /// Some routers (like my NETGEAR RangeMax) seem to fail requests for no reason, so repetition may be needed.
         /// </summary>
-
-        string SendRequest(string action, string content, int timeout, int repeat)
+        private string SendRequest(string action, string content, int timeout, int repeat)
         {
             string request = "<?xml version=\"1.0\"?>\n" +
-                "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=" +
-                "\"http://schemas.xmlsoap.org/soap/encoding/\">\n<s:Body>\n" +
-                "<m:" + action + " xmlns:m=\"urn:schemas-upnp-org:service:" + mServiceType + ":1\">\n";
+                             "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=" +
+                             "\"http://schemas.xmlsoap.org/soap/encoding/\">\n<s:Body>\n" +
+                             "<m:" + action + " xmlns:m=\"urn:schemas-upnp-org:service:" + mServiceType + ":1\">\n";
 
-            if (!string.IsNullOrEmpty(content)) request += content;
+            if (!string.IsNullOrEmpty(content))
+            {
+                request += content;
+            }
 
             request += "</m:" + action + ">\n</s:Body>\n</s:Envelope>\n";
 
@@ -298,16 +321,17 @@ namespace LegendaryTools.Networking
 
             string response = null;
 
-            UnityEngine.Debug.Log("[UPnP:SendRequest(" + action + ", "+ content + ")] -> Status: " + mStatus);
+            Debug.Log("[UPnP:SendRequest(" + action + ", " + content + ")] -> Status: " + mStatus);
 
             try
             {
                 for (int i = 0; i < repeat; ++i)
                 {
-                    WebRequest web = HttpWebRequest.Create(mControlURL);
+                    WebRequest web = WebRequest.Create(mControlURL);
                     web.Timeout = timeout;
                     web.Method = "POST";
-                    web.Headers.Add("SOAPACTION", "\"urn:schemas-upnp-org:service:" + mServiceType + ":1#" + action + "\"");
+                    web.Headers.Add("SOAPACTION",
+                        "\"urn:schemas-upnp-org:service:" + mServiceType + ":1#" + action + "\"");
                     web.ContentType = "text/xml; charset=\"utf-8\"";
                     web.ContentLength = b.Length;
                     web.GetRequestStream().Write(b, 0, b.Length);
@@ -315,55 +339,63 @@ namespace LegendaryTools.Networking
 
                     if (!string.IsNullOrEmpty(response))
                     {
-                        UnityEngine.Debug.Log("[UPnP:SendRequest()] -> Response: " + response);
+                        Debug.Log("[UPnP:SendRequest()] -> Response: " + response);
                         return response;
                     }
-                    else
-                        UnityEngine.Debug.Log("[UPnP:SendRequest()] -> Response is empty.");
+
+                    Debug.Log("[UPnP:SendRequest()] -> Response is empty.");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
             }
+
             return null;
         }
 
         /// <summary>
         /// Open up a TCP port on the gateway.
         /// </summary>
-
-        public void OpenTCP(int port) { Open(port, true, null); }
+        public void OpenTCP(int port)
+        {
+            Open(port, true, null);
+        }
 
         /// <summary>
         /// Open up a UDP port on the gateway.
         /// </summary>
-
-        public void OpenUDP(int port) { Open(port, false, null); }
+        public void OpenUDP(int port)
+        {
+            Open(port, false, null);
+        }
 
         /// <summary>
         /// Open up a TCP port on the gateway.
         /// </summary>
-
-        public void OpenTCP(int port, OnPortRequest callback) { Open(port, true, callback); }
+        public void OpenTCP(int port, OnPortRequest callback)
+        {
+            Open(port, true, callback);
+        }
 
         /// <summary>
         /// Open up a UDP port on the gateway.
         /// </summary>
-
-        public void OpenUDP(int port, OnPortRequest callback) { Open(port, false, callback); }
+        public void OpenUDP(int port, OnPortRequest callback)
+        {
+            Open(port, false, callback);
+        }
 
         /// <summary>
         /// Open up a port on the gateway.
         /// </summary>
-
-        void Open(int port, bool tcp, OnPortRequest callback)
+        private void Open(int port, bool tcp, OnPortRequest callback)
         {
             int id = (port << 8) | (tcp ? 1 : 0);
 
             if (port > 0 && !mPorts.Contains(id) && mStatus != Status.Failure)
             {
-                var debug = NetworkUtility.localAddresses;
+                ListLessGarb<IPAddress> debug = NetworkUtility.localAddresses;
 
                 if (mDiscover == null)
                 {
@@ -373,7 +405,10 @@ namespace LegendaryTools.Networking
                 }
 
                 string addr = NetworkUtility.localAddress.ToString();
-                if (addr == "127.0.0.1") return;
+                if (addr == "127.0.0.1")
+                {
+                    return;
+                }
 
                 mPorts.Add(id);
 
@@ -383,19 +418,23 @@ namespace LegendaryTools.Networking
                 xp.protocol = tcp ? ProtocolType.Tcp : ProtocolType.Udp;
                 xp.action = "AddPortMapping";
                 xp.request = "<NewRemoteHost></NewRemoteHost>\n" +
-                    "<NewExternalPort>" + port + "</NewExternalPort>\n" +
-                    "<NewProtocol>" + (tcp ? "TCP" : "UDP") + "</NewProtocol>\n" +
-                    "<NewInternalPort>" + port + "</NewInternalPort>\n" +
-                    "<NewInternalClient>" + addr + "</NewInternalClient>\n" +
-                    "<NewEnabled>1</NewEnabled>\n" +
-                    "<NewPortMappingDescription>" + name + "</NewPortMappingDescription>\n" +
-                    "<NewLeaseDuration>0</NewLeaseDuration>\n";
+                             "<NewExternalPort>" + port + "</NewExternalPort>\n" +
+                             "<NewProtocol>" + (tcp ? "TCP" : "UDP") + "</NewProtocol>\n" +
+                             "<NewInternalPort>" + port + "</NewInternalPort>\n" +
+                             "<NewInternalClient>" + addr + "</NewInternalClient>\n" +
+                             "<NewEnabled>1</NewEnabled>\n" +
+                             "<NewPortMappingDescription>" + name + "</NewPortMappingDescription>\n" +
+                             "<NewLeaseDuration>0</NewLeaseDuration>\n";
 
                 xp.th = new Thread(OpenRequest);
-                lock (mThreads) mThreads.Add(xp.th);
+                lock (mThreads)
+                {
+                    mThreads.Add(xp.th);
+                }
+
                 xp.th.Start(xp);
 
-                UnityEngine.Debug.Log("[UPnP:Open("+port+ ", " + (tcp ? "TCP" : "UDP") + ")] -> Requested");
+                Debug.Log("[UPnP:Open(" + port + ", " + (tcp ? "TCP" : "UDP") + ")] -> Requested");
             }
             else if (callback != null)
             {
@@ -406,34 +445,41 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Stop port forwarding that was set up earlier.
         /// </summary>
-
-        public void CloseTCP(int port) { Close(port, true, null); }
-
-        /// <summary>
-        /// Stop port forwarding that was set up earlier.
-        /// </summary>
-
-        public void CloseUDP(int port) { Close(port, false, null); }
-
-        /// <summary>
-        /// Stop port forwarding that was set up earlier.
-        /// </summary>
-
-        public void CloseTCP(int port, OnPortRequest callback) { Close(port, true, callback); }
-
-        /// <summary>
-        /// Stop port forwarding that was set up earlier.
-        /// </summary>
-
-        public void CloseUDP(int port, OnPortRequest callback) { Close(port, false, callback); }
-
-        /// <summary>
-        /// Stop port forwarding that was set up earlier.
-        /// </summary>
-
-        void Close(int port, bool tcp, OnPortRequest callback)
+        public void CloseTCP(int port)
         {
-            UnityEngine.Debug.Log("[UPnP:Close("+ port + ", " + (tcp ? "TCP" : "UDP") + ")]");
+            Close(port, true, null);
+        }
+
+        /// <summary>
+        /// Stop port forwarding that was set up earlier.
+        /// </summary>
+        public void CloseUDP(int port)
+        {
+            Close(port, false, null);
+        }
+
+        /// <summary>
+        /// Stop port forwarding that was set up earlier.
+        /// </summary>
+        public void CloseTCP(int port, OnPortRequest callback)
+        {
+            Close(port, true, callback);
+        }
+
+        /// <summary>
+        /// Stop port forwarding that was set up earlier.
+        /// </summary>
+        public void CloseUDP(int port, OnPortRequest callback)
+        {
+            Close(port, false, callback);
+        }
+
+        /// <summary>
+        /// Stop port forwarding that was set up earlier.
+        /// </summary>
+        private void Close(int port, bool tcp, OnPortRequest callback)
+        {
+            Debug.Log("[UPnP:Close(" + port + ", " + (tcp ? "TCP" : "UDP") + ")]");
 
             int id = (port << 8) | (tcp ? 1 : 0);
 
@@ -445,8 +491,8 @@ namespace LegendaryTools.Networking
                 xp.protocol = tcp ? ProtocolType.Tcp : ProtocolType.Udp;
                 xp.action = "DeletePortMapping";
                 xp.request = "<NewRemoteHost></NewRemoteHost>\n" +
-                    "<NewExternalPort>" + port + "</NewExternalPort>\n" +
-                    "<NewProtocol>" + (tcp ? "TCP" : "UDP") + "</NewProtocol>\n";
+                             "<NewExternalPort>" + port + "</NewExternalPort>\n" +
+                             "<NewProtocol>" + (tcp ? "TCP" : "UDP") + "</NewProtocol>\n";
 
                 if (callback != null)
                 {
@@ -458,7 +504,10 @@ namespace LegendaryTools.Networking
                         xp.th.Start(xp);
                     }
                 }
-                else CloseRequest(xp);
+                else
+                {
+                    CloseRequest(xp);
+                }
             }
             else if (callback != null)
             {
@@ -469,38 +518,56 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Thread callback that requests a port to be opened.
         /// </summary>
-
-        void OpenRequest(object obj)
+        private void OpenRequest(object obj)
         {
-            UnityEngine.Debug.Log("[UPnP:OpenRequest()] -> Start Status: " + mStatus);
+            Debug.Log("[UPnP:OpenRequest()] -> Start Status: " + mStatus);
 
             while (mStatus == Status.Searching)
             {
-                UnityEngine.Debug.Log("[UPnP:OpenRequest()] -> Update status: " + mStatus);
+                Debug.Log("[UPnP:OpenRequest()] -> Update status: " + mStatus);
                 Thread.Sleep(1);
             }
 
-            SendRequest((ExtraParams)obj);
+            SendRequest((ExtraParams) obj);
         }
 
         /// <summary>
         /// Thread callback that requests a port to be closed.
         /// </summary>
-
-        void CloseRequest(object obj) { SendRequest((ExtraParams)obj); }
+        private void CloseRequest(object obj)
+        {
+            SendRequest((ExtraParams) obj);
+        }
 
         /// <summary>
         /// Open or close request.
         /// </summary>
-
-        void SendRequest(ExtraParams xp)
+        private void SendRequest(ExtraParams xp)
         {
-            string response = (mStatus == Status.Success) ? SendRequest(xp.action, xp.request, 10000, 3) : null;
+            string response = mStatus == Status.Success ? SendRequest(xp.action, xp.request, 10000, 3) : null;
 
             if (xp.callback != null)
+            {
                 xp.callback(this, xp.port, xp.protocol, !string.IsNullOrEmpty(response));
+            }
 
-            if (xp.th != null) lock (mThreads) mThreads.Remove(xp.th);
+            if (xp.th != null)
+            {
+                lock (mThreads)
+                {
+                    mThreads.Remove(xp.th);
+                }
+            }
+        }
+
+        private class ExtraParams
+        {
+            public string action;
+            public OnPortRequest callback;
+            public int port;
+            public ProtocolType protocol;
+            public string request;
+            public Thread th;
         }
     }
 }

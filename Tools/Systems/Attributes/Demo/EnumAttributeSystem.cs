@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using LegendaryTools.Systems;
 
 public enum RPGAttributeExample
@@ -12,13 +9,14 @@ public enum RPGAttributeExample
     AttackPower,
     SpellPower,
     MovimentSpeed,
-    AttackSpeed,
+    AttackSpeed
 }
 
 [Serializable]
 public class EnumAttribute : Attribute<RPGAttributeExample>
 {
-    public EnumAttribute(AttributeSystem<RPGAttributeExample> parent, AttributeConfig<RPGAttributeExample> config) : base(parent, config)
+    public EnumAttribute(AttributeSystem<RPGAttributeExample> parent, AttributeConfig<RPGAttributeExample> config) :
+        base(parent, config)
     {
     }
 }
@@ -26,5 +24,4 @@ public class EnumAttribute : Attribute<RPGAttributeExample>
 [Serializable]
 public class EnumAttributeSystem : AttributeSystem<RPGAttributeExample>
 {
-    
 }

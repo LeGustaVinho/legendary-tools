@@ -2,7 +2,7 @@
 
 namespace LegendaryTools
 {
-	[ExecuteInEditMode]
+    [ExecuteInEditMode]
     public class FollowTransform : MonoBehaviour
     {
         public enum FollowTransformLoopMode
@@ -11,51 +11,54 @@ namespace LegendaryTools
             LateUpdate
         }
 
-        public Transform Target;
-        public FollowTransformLoopMode LoopMode;
+        public float CurrentAngle;
+        public float CurrentDistance;
+        public float DeltaAngleThreshold;
+        public float DeltaPositionThreshold;
 
         public bool FollowPosition;
-        public Vector3 PositionOffset;
-		public Space PositionOffsetRelativeTo;
-        public float DeltaPositionThreshold;
-        public bool SmoothPosition;
-        public float SmoothPositionFactor = 1;
-        public float CurrentDistance;
 
         public bool FollowRotation;
-		public Vector3 RotationOffset;
-		public Space RotationOffsetRelativeTo;
-        public float DeltaAngleThreshold;
-        public bool SmoothRotation;
-        public float SmoothRotationFactor = 1;
-        public float CurrentAngle;
 
         private Vector3 lastTargetPosition;
         private Quaternion lastTargetRotation;
-		[HideInInspector]
-        public Transform Transform;
+        public FollowTransformLoopMode LoopMode;
+        public Vector3 PositionOffset;
+        public Space PositionOffsetRelativeTo;
+        public Vector3 RotationOffset;
+        public Space RotationOffsetRelativeTo;
+        public bool SmoothPosition;
+        public float SmoothPositionFactor = 1;
+        public bool SmoothRotation;
+        public float SmoothRotationFactor = 1;
 
-		void Awake()
-		{
-			Init ();
-			Follow ();
-		}
+        public Transform Target;
 
-		void Init()
-		{
-			Transform = transform;
+        [HideInInspector] public Transform Transform;
 
-			if (Target != null)
-			{
-				lastTargetPosition = Target.position + PositionOffset;
-				lastTargetRotation = Target.rotation;
-			}
-		}
+        private void Awake()
+        {
+            Init();
+            Follow();
+        }
+
+        private void Init()
+        {
+            Transform = transform;
+
+            if (Target != null)
+            {
+                lastTargetPosition = Target.position + PositionOffset;
+                lastTargetRotation = Target.rotation;
+            }
+        }
 
         public void Follow()
         {
-			if (Target == null || Transform == null)
-				Init ();
+            if (Target == null || Transform == null)
+            {
+                Init();
+            }
 
             if (Target != null)
             {
@@ -63,33 +66,47 @@ namespace LegendaryTools
                 {
                     CurrentDistance = Vector3.Distance(Transform.position, Target.position);
                     if (CurrentDistance >= DeltaPositionThreshold - PositionOffset.magnitude)
+                    {
                         lastTargetPosition = Target.position;
+                    }
 
-					if (SmoothPosition)
-						Transform.position = Vector3.Lerp (Transform.position, lastTargetPosition, SmoothPositionFactor * Time.deltaTime);
-					else
-						Transform.position = lastTargetPosition;
+                    if (SmoothPosition)
+                    {
+                        Transform.position = Vector3.Lerp(Transform.position, lastTargetPosition,
+                            SmoothPositionFactor * Time.deltaTime);
+                    }
+                    else
+                    {
+                        Transform.position = lastTargetPosition;
+                    }
 
-					Transform.Translate (PositionOffset, PositionOffsetRelativeTo);
+                    Transform.Translate(PositionOffset, PositionOffsetRelativeTo);
                 }
 
                 if (FollowRotation)
                 {
                     CurrentAngle = Quaternion.Angle(Transform.rotation, Target.rotation);
                     if (CurrentAngle >= DeltaAngleThreshold)
+                    {
                         lastTargetRotation = Target.rotation;
+                    }
 
-					if (SmoothRotation)
-						Transform.rotation = Quaternion.Lerp (Transform.rotation, lastTargetRotation, SmoothRotationFactor * Time.deltaTime);
-					else
-						Transform.rotation = lastTargetRotation;
-					
-					Transform.Rotate (RotationOffset, RotationOffsetRelativeTo);
+                    if (SmoothRotation)
+                    {
+                        Transform.rotation = Quaternion.Lerp(Transform.rotation, lastTargetRotation,
+                            SmoothRotationFactor * Time.deltaTime);
+                    }
+                    else
+                    {
+                        Transform.rotation = lastTargetRotation;
+                    }
+
+                    Transform.Rotate(RotationOffset, RotationOffsetRelativeTo);
                 }
             }
         }
 
-        void Update()
+        private void Update()
         {
             if (LoopMode == FollowTransformLoopMode.Update)
             {
@@ -97,7 +114,7 @@ namespace LegendaryTools
             }
         }
 
-        void LateUpdate()
+        private void LateUpdate()
         {
             if (LoopMode == FollowTransformLoopMode.LateUpdate)
             {
@@ -105,9 +122,9 @@ namespace LegendaryTools
             }
         }
 
-        void Reset()
+        private void Reset()
         {
-			Init();
+            Init();
         }
     }
 }

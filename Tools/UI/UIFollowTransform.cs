@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 
 namespace LegendaryTools.UI
 {
@@ -12,22 +11,20 @@ namespace LegendaryTools.UI
             LateUpdate
         }
 
-        public UpdateModeType UpdateMode;
         public Camera Camera;
         public Canvas Canvas;
-        public Transform Target;
+        private RectTransform CanvasRectTransform;
         public Vector2 Offset;
 
+        private RectTransform RectTransform;
+        public Transform Target;
+
         private Vector3 targetScreenPointPosition;
+
+        public UpdateModeType UpdateMode;
         private Vector3 worldPointInRectangle;
 
-        private RectTransform RectTransform;
-        private RectTransform CanvasRectTransform;
-
-        bool IsNotCanvasOverlay
-        {
-            get { return Canvas != null && Canvas.renderMode != RenderMode.ScreenSpaceOverlay; }
-        }
+        private bool IsNotCanvasOverlay => Canvas != null && Canvas.renderMode != RenderMode.ScreenSpaceOverlay;
 
         private void Awake()
         {
@@ -37,15 +34,19 @@ namespace LegendaryTools.UI
         private void Update()
         {
             if (UpdateMode == UpdateModeType.Update)
+            {
                 Follow();
+            }
         }
 
         private void LateUpdate()
         {
             if (UpdateMode == UpdateModeType.LateUpdate)
+            {
                 Follow();
+            }
         }
-        
+
         private void Reset()
         {
             cache();
@@ -55,22 +56,32 @@ namespace LegendaryTools.UI
         {
             RectTransform = GetComponent<RectTransform>();
             if (Canvas != null)
+            {
                 CanvasRectTransform = Canvas.GetComponent<RectTransform>();
+            }
         }
-        
+
         public void Follow()
         {
             if (Target == null || Canvas == null)
+            {
                 return;
+            }
 
             if (Canvas.renderMode == RenderMode.ScreenSpaceCamera && Camera == null)
+            {
                 return;
+            }
 
             if (RectTransform == null || CanvasRectTransform == null)
+            {
                 cache();
+            }
 
             if (Camera != null)
+            {
                 targetScreenPointPosition = Camera.WorldToScreenPoint(Target.position);
+            }
 
             RectTransformUtility.ScreenPointToWorldPointInRectangle(CanvasRectTransform, targetScreenPointPosition,
                 Canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : Camera, out worldPointInRectangle);

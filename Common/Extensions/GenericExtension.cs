@@ -22,9 +22,9 @@ namespace LegendaryTools
             }
 
             // Don't serialize a null object, simply return the default for that object
-            if (System.Object.ReferenceEquals(source, null))
+            if (ReferenceEquals(source, null))
             {
-                return default(T);
+                return default;
             }
 
             IFormatter formatter = new BinaryFormatter();
@@ -33,34 +33,41 @@ namespace LegendaryTools
             {
                 formatter.Serialize(stream, source);
                 stream.Seek(0, SeekOrigin.Begin);
-                return (T)formatter.Deserialize(stream);
+                return (T) formatter.Deserialize(stream);
             }
         }
-        
+
         public static bool DeepEquals(this object lhs, object rhs)
         {
             // Check for null on left side.
-            if (System.Object.ReferenceEquals(lhs, null))
+            if (ReferenceEquals(lhs, null))
             {
-                if (System.Object.ReferenceEquals(rhs, null)) // null == null = true.
+                if (ReferenceEquals(rhs, null)) // null == null = true.
+                {
                     return true;
+                }
 
                 return false; // Only the left side is null.
             }
 
             if (lhs.GetType() != rhs.GetType())
+            {
                 return false;
+            }
 
             if (lhs.GetType().IsValueType != rhs.GetType().IsValueType)
+            {
                 return false;
+            }
 
             if (lhs.GetType().IsValueType)
             {
-                Debug.Log(lhs.GetHashCode() + " == " + rhs.GetHashCode() + "?" + (lhs.GetHashCode() == rhs.GetHashCode()));
+                Debug.Log(lhs.GetHashCode() + " == " + rhs.GetHashCode() + "?" +
+                          (lhs.GetHashCode() == rhs.GetHashCode()));
                 return lhs.GetHashCode() == rhs.GetHashCode();
             }
-            else
-                return System.Object.ReferenceEquals(lhs, rhs);
+
+            return ReferenceEquals(lhs, rhs);
         }
     }
 }

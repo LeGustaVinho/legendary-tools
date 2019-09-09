@@ -1,10 +1,9 @@
 #define DEBUG
 
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
@@ -15,11 +14,8 @@ namespace LegendaryTools.Networking
     /// <summary>
     /// UDP class makes it possible to broadcast messages to players on the same network prior to establishing a connection.
     /// </summary>
-
     public class UdpProtocol
     {
-        bool multiThreaded = true;
-
         public const int BUFFER_MAX_SIZE = 8192;
 
         /// <summary>
@@ -27,8 +23,7 @@ namespace LegendaryTools.Networking
         /// Multicasting is the suggested way to go as it supports multiple network interfaces properly.
         /// It's important to set this prior to calling StartUDP or the change won't have any effect.
         /// </summary>
-
-        static public bool useMulticasting = true;
+        public static bool useMulticasting = true;
 
         /// <summary>
         /// When you have multiple network interfaces, it's often important to be able to specify
@@ -36,61 +31,55 @@ namespace LegendaryTools.Networking
         /// to IPAddress.Any, but you can change it to be something else if you desire.
         /// It's important to set this prior to calling StartUDP or the change won't have any effect.
         /// </summary>
+        public static IPAddress defaultNetworkInterface = null;
 
-        static public IPAddress defaultNetworkInterface = null;
-
-        // Port used to listen and socket used to send and receive
-        int Port = -1;
-        Socket Socket;
-        bool multicast = true;
-
-        // Buffer used for receiving incoming data
-        byte[] temp = new byte[BUFFER_MAX_SIZE];
-
-        static protected object lockObj = new int();
-        Thread thread;
-        
-        // End point of where the data is coming from
-        EndPoint endPoint;
+        protected static object lockObj = new int();
 
         // Default end point -- mEndPoint is reset to this value after every receive operation.
-        static EndPoint defaultEndPoint;
+        private static EndPoint defaultEndPoint;
 
-#if !UNITY_WEBPLAYER
-        // Cached broadcast end-point
-        static IPAddress multicastIP = IPAddress.Parse("224.168.100.17");
-        IPEndPoint multicastEndPoint = new IPEndPoint(multicastIP, 0);
-        IPEndPoint broadcastEndPoint = new IPEndPoint(IPAddress.Broadcast, 0);
-#endif
+        // End point of where the data is coming from
+        private EndPoint endPoint;
 
         // Incoming message queue
         protected Queue<Datagram> inQueue = new Queue<Datagram>();
+        private bool multicast = true;
+        private bool multiThreaded = true;
         protected Queue<Datagram> outQueue = new Queue<Datagram>();
 
-        public event OnUdpPacketReceivedEventHandler OnPacketReceived;
+        // Port used to listen and socket used to send and receive
+        private int Port = -1;
+        private Socket Socket;
+
+        // Buffer used for receiving incoming data
+        private byte[] temp = new byte[BUFFER_MAX_SIZE];
+        private Thread thread;
 
         /// <summary>
         /// Whether we can send or receive through the UDP socket.
         /// </summary>
 
-        public bool isActive { get { return Port != -1; } }
+        public bool isActive => Port != -1;
 
         /// <summary>
         /// Port used for listening.
         /// </summary>
 
-        public int listeningPort { get { return Port > 0 ? Port : 0; } }
+        public int listeningPort => Port > 0 ? Port : 0;
+
+        public event OnUdpPacketReceivedEventHandler OnPacketReceived;
 
         /// <summary>
         /// Start UDP, but don't bind it to a specific port. This means we will be able to send, but not receive.
         /// </summary>
-
-        public bool Start(bool multiThreaded = true) { return Start(0, multiThreaded); }
+        public bool Start(bool multiThreaded = true)
+        {
+            return Start(0, multiThreaded);
+        }
 
         /// <summary>
         /// Start listening for incoming messages on the specified port.
         /// </summary>
-
         public bool Start(int port, bool multiThreaded = true)
         {
             this.multiThreaded = multiThreaded;
@@ -115,19 +104,22 @@ namespace LegendaryTools.Networking
                         Socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, opt);
                     }
                 }
-                else 
+                else
+                {
                     Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
+                }
             }
-            catch (System.Exception e) 
+            catch (Exception e)
             {
-                UnityEngine.Debug.LogException(e);
+                Debug.LogException(e);
             }
 
             // Port zero means we will be able to send, but not receive
             if (Port == 0)
             {
 #if DEBUG
-                UnityEngine.Debug.Log("[UdpProtocol:Start("+port+") - Port zero means we will be able to send, but not receive");
+                Debug.Log("[UdpProtocol:Start(" + port +
+                          ") - Port zero means we will be able to send, but not receive");
 #endif
                 return true;
             }
@@ -147,9 +139,9 @@ namespace LegendaryTools.Networking
                 Socket.Bind(new IPEndPoint(networkInterface, Port));
                 Socket.BeginReceiveFrom(temp, 0, temp.Length, SocketFlags.None, ref endPoint, OnReceive, null);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
                 Stop();
                 return false;
             }
@@ -161,7 +153,8 @@ namespace LegendaryTools.Networking
             }
 
 #if DEBUG
-            UnityEngine.Debug.Log("[UdpProtocol:Start(" + port + ") - Success ! useMulticasting? " + useMulticasting.ToString() + " EndPoint: " + endPoint.ToString());
+            Debug.Log("[UdpProtocol:Start(" + port + ") - Success ! useMulticasting? " + useMulticasting +
+                      " EndPoint: " + endPoint);
 #endif
             return true;
         }
@@ -169,7 +162,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Stop listening for incoming packets.
         /// </summary>
-
         public void Stop()
         {
             Port = -1;
@@ -180,13 +172,13 @@ namespace LegendaryTools.Networking
                 Socket = null;
 
 #if DEBUG
-                UnityEngine.Debug.Log("[UdpProtocol:Stop() - Stopped");
+                Debug.Log("[UdpProtocol:Stop() - Stopped");
 #endif
             }
             else
             {
 #if DEBUG
-                UnityEngine.Debug.LogWarning("[UdpProtocol:Stop() - mSocket is null");
+                Debug.LogWarning("[UdpProtocol:Stop() - mSocket is null");
 #endif
             }
 
@@ -204,19 +196,22 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Receive incoming data.
         /// </summary>
-
-        void OnReceive(IAsyncResult result)
+        private void OnReceive(IAsyncResult result)
         {
-            if (!isActive) return;
+            if (!isActive)
+            {
+                return;
+            }
+
             int bytes = 0;
 
             try
             {
                 bytes = Socket.EndReceiveFrom(result, ref endPoint);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
                 Error(new IPEndPoint(NetworkUtility.localAddress, 0), ex.Message);
             }
 
@@ -230,10 +225,13 @@ namespace LegendaryTools.Networking
                 // The 'endPoint', gets reassigned rather than updated.
                 Datagram dg = new Datagram();
                 dg.buffer = buffer;
-                dg.ip = (IPEndPoint)endPoint;
-                lock (inQueue) inQueue.Enqueue(dg);
+                dg.ip = (IPEndPoint) endPoint;
+                lock (inQueue)
+                {
+                    inQueue.Enqueue(dg);
+                }
 #if DEBUG
-                UnityEngine.Debug.Log("[UdpProtocol:OnReceive() - Datagram Enqueue. Qeue In count: " + inQueue.Count);
+                Debug.Log("[UdpProtocol:OnReceive() - Datagram Enqueue. Qeue In count: " + inQueue.Count);
 #endif
             }
 
@@ -243,26 +241,29 @@ namespace LegendaryTools.Networking
                 endPoint = defaultEndPoint;
                 Socket.BeginReceiveFrom(temp, 0, temp.Length, SocketFlags.None, ref endPoint, OnReceive, null);
 #if DEBUG
-                UnityEngine.Debug.Log("[UdpProtocol:OnReceive() - Begin receive process from endPoint again. Qeue In count: " + inQueue.Count);
+                Debug.Log("[UdpProtocol:OnReceive() - Begin receive process from endPoint again. Qeue In count: " +
+                          inQueue.Count);
 #endif
             }
         }
 
-        void ThreadProcessPackets()
+        private void ThreadProcessPackets()
         {
             if (multiThreaded)
             {
                 while (true)
                 {
                     if (!ProcessPackets())
+                    {
                         Thread.Sleep(1);
+                    }
                 }
             }
-            else
-                ProcessPackets();
+
+            ProcessPackets();
         }
 
-        bool ProcessPackets()
+        private bool ProcessPackets()
         {
             Buffer mReceiveBuffer;
             IPEndPoint mReceiveSource;
@@ -273,11 +274,13 @@ namespace LegendaryTools.Networking
                 try
                 {
                     if (ReceivePacket(out mReceiveBuffer, out mReceiveSource))
+                    {
                         received = true;
+                    }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                 }
             }
 
@@ -287,21 +290,27 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Call this function when you've disabled multi-threading.
         /// </summary>
-
-        public void Update() { if (thread == null && Socket != null) ThreadProcessPackets(); }
+        public void Update()
+        {
+            if (thread == null && Socket != null)
+            {
+                ThreadProcessPackets();
+            }
+        }
 
         /// <summary>
         /// Extract the first incoming packet.
         /// </summary>
-
         public bool ReceivePacket(out Buffer buffer, out IPEndPoint source)
         {
             if (Port == 0)
             {
                 Stop();
-                throw new System.InvalidOperationException("You must specify a non-zero port to UdpProtocol.Start() before you can receive data.");
+                throw new InvalidOperationException(
+                    "You must specify a non-zero port to UdpProtocol.Start() before you can receive data.");
             }
-            else if (inQueue.Count != 0)
+
+            if (inQueue.Count != 0)
             {
                 lock (inQueue)
                 {
@@ -309,10 +318,13 @@ namespace LegendaryTools.Networking
                     buffer = dg.buffer;
                     source = dg.ip;
 #if DEBUG
-                    UnityEngine.Debug.Log("[UdpProtocol:ReceivePacket(" + buffer.size + ", " + source.ToString() + ") - Receiving packet ....");
+                    Debug.Log("[UdpProtocol:ReceivePacket(" + buffer.size + ", " + source +
+                              ") - Receiving packet ....");
 #endif
                     if (OnPacketReceived != null)
+                    {
                         OnPacketReceived.Invoke(buffer, source);
+                    }
 
                     return true;
                 }
@@ -328,7 +340,6 @@ namespace LegendaryTools.Networking
         /// Can be used for NAT punch-through, or just to keep a UDP connection alive.
         /// Empty packets are simply ignored.
         /// </summary>
-
         public void SendEmptyPacket(IPEndPoint ip)
         {
             Buffer buffer = Buffer.Create(false);
@@ -340,7 +351,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send the specified buffer to the entire LAN.
         /// </summary>
-
         public void Broadcast(Buffer buffer, int port)
         {
             if (buffer != null)
@@ -353,12 +363,13 @@ namespace LegendaryTools.Networking
                 {
                     Socket.SendTo(buffer.buffer, buffer.position, buffer.size, SocketFlags.None, endPoint);
 #if DEBUG
-                    UnityEngine.Debug.Log("[UdpProtocol:Broadcast(" + buffer.size + ", " + port + ") - Sended. Position: " + buffer.position + " EndPoint: " + endPoint.ToString());
+                    Debug.Log("[UdpProtocol:Broadcast(" + buffer.size + ", " + port + ") - Sended. Position: " +
+                              buffer.position + " EndPoint: " + endPoint);
 #endif
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogException(ex);
+                    Debug.LogException(ex);
                     Error(null, ex.Message);
                 }
 
@@ -369,7 +380,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send the specified datagram.
         /// </summary>
-
         public void Send(Buffer buffer, IPEndPoint ip)
         {
             if (ip.Address.Equals(IPAddress.Broadcast))
@@ -397,7 +407,8 @@ namespace LegendaryTools.Networking
                         Socket.BeginSendTo(buffer.buffer, buffer.position, buffer.size,
                             SocketFlags.None, ip, OnSend, null);
 #if DEBUG
-                        UnityEngine.Debug.Log("[UdpProtocol:Send(" + buffer.size + ", " + ip.ToString() + ") - Sended. Position: " + buffer.position);
+                        Debug.Log("[UdpProtocol:Send(" + buffer.size + ", " + ip + ") - Sended. Position: " +
+                                  buffer.position);
 #endif
                     }
                 }
@@ -412,20 +423,23 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Send completion callback. Recycles the datagram.
         /// </summary>
-
-        void OnSend(IAsyncResult result)
+        private void OnSend(IAsyncResult result)
         {
-            if (!isActive) return;
+            if (!isActive)
+            {
+                return;
+            }
+
             int bytes = 0;
 
             try
             {
                 bytes = Socket.EndSendTo(result);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 bytes = 1;
-                UnityEngine.Debug.LogException(ex);
+                Debug.LogException(ex);
             }
 
             lock (outQueue)
@@ -439,13 +453,13 @@ namespace LegendaryTools.Networking
                     Socket.BeginSendTo(dg.buffer.buffer, dg.buffer.position, dg.buffer.size,
                         SocketFlags.None, dg.ip, OnSend, null);
 #if DEBUG
-                    UnityEngine.Debug.Log("[UdpProtocol:OnSend() - EndSend. Begin send again. Position: " + dg.buffer.position);
+                    Debug.Log("[UdpProtocol:OnSend() - EndSend. Begin send again. Position: " + dg.buffer.position);
 #endif
                 }
                 else
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log("[UdpProtocol:OnSend() - EndSend.");
+                    Debug.Log("[UdpProtocol:OnSend() - EndSend.");
 #endif
                 }
             }
@@ -454,7 +468,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Add an error packet to the incoming queue.
         /// </summary>
-
         public void Error(IPEndPoint ip, string error)
         {
             Buffer buffer = Buffer.Create();
@@ -464,7 +477,17 @@ namespace LegendaryTools.Networking
             Datagram dg = new Datagram();
             dg.buffer = buffer;
             dg.ip = ip;
-            lock (inQueue) inQueue.Enqueue(dg);
+            lock (inQueue)
+            {
+                inQueue.Enqueue(dg);
+            }
         }
+
+#if !UNITY_WEBPLAYER
+        // Cached broadcast end-point
+        private static IPAddress multicastIP = IPAddress.Parse("224.168.100.17");
+        private IPEndPoint multicastEndPoint = new IPEndPoint(multicastIP, 0);
+        private IPEndPoint broadcastEndPoint = new IPEndPoint(IPAddress.Broadcast, 0);
+#endif
     }
 }

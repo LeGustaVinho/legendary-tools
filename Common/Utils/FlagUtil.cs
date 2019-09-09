@@ -66,7 +66,7 @@
 
         public static long Remove(float lhFlag, float rhFlag)
         {
-            return (long) lhFlag & ~((long) rhFlag);
+            return (long) lhFlag & ~(long) rhFlag;
         }
     }
 }

@@ -1,35 +1,64 @@
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
 using System.Collections.Generic;
+using System.IO;
 
 namespace LegendaryTools.Networking
 {
     /// <summary>
     /// This class merges BinaryWriter and BinaryReader into one.
     /// </summary>
-
     public class Buffer
     {
-        static ListLessGarb<Buffer> mPool = new ListLessGarb<Buffer>();
+        private static ListLessGarb<Buffer> mPool = new ListLessGarb<Buffer>();
 
-        volatile MemoryStream mStream;
-        volatile BinaryWriter mWriter;
-        volatile BinaryReader mReader;
+        private volatile int mCounter;
+        private volatile bool mInPool;
+        private volatile BinaryReader mReader;
+        private volatile int mSize;
 
-        volatile int mCounter = 0;
-        volatile int mSize = 0;
-        volatile bool mWriting = false;
-        volatile bool mInPool = false;
+        private volatile MemoryStream mStream;
+        private volatile BinaryWriter mWriter;
+        private volatile bool mWriting;
 
-        Buffer()
+        private Buffer()
         {
             mStream = new MemoryStream();
             mWriter = new BinaryWriter(mStream);
             mReader = new BinaryReader(mStream);
         }
+
+        /// <summary>
+        /// The size of the data present in the buffer.
+        /// </summary>
+
+        public int size => mWriting ? (int) mStream.Position : mSize - (int) mStream.Position;
+
+        /// <summary>
+        /// Position within the stream.
+        /// </summary>
+
+        public int position
+        {
+            get => (int) mStream.Position;
+            set => mStream.Seek(value, SeekOrigin.Begin);
+        }
+
+        /// <summary>
+        /// Underlying memory stream.
+        /// </summary>
+
+        public MemoryStream stream => mStream;
+
+        /// <summary>
+        /// Get the entire buffer (note that it may be bigger than 'size').
+        /// </summary>
+
+        public byte[] buffer => mStream.GetBuffer();
+
+        /// <summary>
+        /// Number of buffers in the recycled list.
+        /// </summary>
+
+        public static int recycleQueue => mPool.size;
 
         ~Buffer()
         {
@@ -39,52 +68,17 @@ namespace LegendaryTools.Networking
         }
 
         /// <summary>
-        /// The size of the data present in the buffer.
+        /// Create a new buffer, reusing an old one if possible.
         /// </summary>
-
-        public int size
+        public static Buffer Create()
         {
-            get
-            {
-                return mWriting ? (int)mStream.Position : mSize - (int)mStream.Position;
-            }
+            return Create(true);
         }
 
         /// <summary>
-        /// Position within the stream.
-        /// </summary>
-
-        public int position { get { return (int)mStream.Position; } set { mStream.Seek(value, SeekOrigin.Begin); } }
-
-        /// <summary>
-        /// Underlying memory stream.
-        /// </summary>
-
-        public MemoryStream stream { get { return mStream; } }
-
-        /// <summary>
-        /// Get the entire buffer (note that it may be bigger than 'size').
-        /// </summary>
-
-        public byte[] buffer { get { return mStream.GetBuffer(); } }
-
-        /// <summary>
-        /// Number of buffers in the recycled list.
-        /// </summary>
-
-        static public int recycleQueue { get { return mPool.size; } }
-
-        /// <summary>
         /// Create a new buffer, reusing an old one if possible.
         /// </summary>
-
-        static public Buffer Create() { return Create(true); }
-
-        /// <summary>
-        /// Create a new buffer, reusing an old one if possible.
-        /// </summary>
-
-        static public Buffer Create(bool markAsUsed)
+        public static Buffer Create(bool markAsUsed)
         {
             Buffer b = null;
 
@@ -101,9 +95,13 @@ namespace LegendaryTools.Networking
                         b = mPool.Pop();
                         b.mInPool = false;
                     }
-                    else b = new Buffer();
+                    else
+                    {
+                        b = new Buffer();
+                    }
                 }
             }
+
             b.mCounter = markAsUsed ? 1 : 0;
             return b;
         }
@@ -111,7 +109,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Release the buffer into the reusable pool.
         /// </summary>
-
         public bool Recycle()
         {
             lock (this)
@@ -122,7 +119,11 @@ namespace LegendaryTools.Networking
                     //throw new Exception("Releasing a buffer that's already in the pool");
                     return false;
                 }
-                if (--mCounter > 0) return false;
+
+                if (--mCounter > 0)
+                {
+                    return false;
+                }
 
                 lock (mPool)
                 {
@@ -130,6 +131,7 @@ namespace LegendaryTools.Networking
                     Clear();
                     mPool.Add(this);
                 }
+
                 return true;
             }
         }
@@ -137,8 +139,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Recycle an entire queue of buffers.
         /// </summary>
-
-        static public void Recycle(Queue<Buffer> list)
+        public static void Recycle(Queue<Buffer> list)
         {
             lock (mPool)
             {
@@ -154,8 +155,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Recycle an entire queue of buffers.
         /// </summary>
-
-        static public void Recycle(Queue<Datagram> list)
+        public static void Recycle(Queue<Datagram> list)
         {
             lock (mPool)
             {
@@ -171,8 +171,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Recycle an entire list of buffers.
         /// </summary>
-
-        static public void Recycle(ListLessGarb<Buffer> list)
+        public static void Recycle(ListLessGarb<Buffer> list)
         {
             lock (mPool)
             {
@@ -182,6 +181,7 @@ namespace LegendaryTools.Networking
                     b.Clear();
                     mPool.Add(b);
                 }
+
                 list.Clear();
             }
         }
@@ -189,8 +189,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Recycle an entire list of buffers.
         /// </summary>
-
-        static public void Recycle(ListLessGarb<Datagram> list)
+        public static void Recycle(ListLessGarb<Datagram> list)
         {
             lock (mPool)
             {
@@ -200,6 +199,7 @@ namespace LegendaryTools.Networking
                     b.Clear();
                     mPool.Add(b);
                 }
+
                 list.Clear();
             }
         }
@@ -207,18 +207,26 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Mark the buffer as being in use.
         /// </summary>
-
-        public void MarkAsUsed() { lock (this) ++mCounter; }
+        public void MarkAsUsed()
+        {
+            lock (this)
+            {
+                ++mCounter;
+            }
+        }
 
         /// <summary>
         /// Clear the buffer.
         /// </summary>
-
         public void Clear()
         {
             mCounter = 0;
             mSize = 0;
-            if (mStream.Capacity > 1024) mStream.SetLength(256);
+            if (mStream.Capacity > 1024)
+            {
+                mStream.SetLength(256);
+            }
+
             mStream.Seek(0, SeekOrigin.Begin);
             mWriting = true;
         }
@@ -226,19 +234,21 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Copy the contents of this buffer into the target one, trimming away unused space.
         /// </summary>
-
         public void CopyTo(Buffer target)
         {
             BinaryWriter w = target.BeginWriting(false);
             int bytes = size;
-            if (bytes > 0) w.Write(buffer, position, bytes);
+            if (bytes > 0)
+            {
+                w.Write(buffer, position, bytes);
+            }
+
             target.EndWriting();
         }
 
         /// <summary>
         /// Begin the writing process.
         /// </summary>
-
         public BinaryWriter BeginWriting(bool append)
         {
             if (mStream == null || !mStream.CanWrite)
@@ -260,7 +270,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Begin the writing process, appending from the specified offset.
         /// </summary>
-
         public BinaryWriter BeginWriting(int startOffset)
         {
             if (mStream == null || !mStream.CanWrite)
@@ -269,7 +278,10 @@ namespace LegendaryTools.Networking
                 mReader = new BinaryReader(mStream);
                 mWriter = new BinaryWriter(mStream);
             }
-            else mStream.Seek(startOffset, SeekOrigin.Begin);
+            else
+            {
+                mStream.Seek(startOffset, SeekOrigin.Begin);
+            }
 
             mWriting = true;
             return mWriter;
@@ -278,7 +290,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Finish the writing process, returning the packet's size.
         /// </summary>
-
         public int EndWriting()
         {
             if (mWriting)
@@ -287,35 +298,36 @@ namespace LegendaryTools.Networking
                 mStream.Seek(0, SeekOrigin.Begin);
                 mWriting = false;
             }
+
             return mSize;
         }
 
         /// <summary>
         /// Begin the reading process.
         /// </summary>
-
         public BinaryReader BeginReading()
         {
             if (mWriting)
             {
                 mWriting = false;
-                mSize = (int)mStream.Position;
+                mSize = (int) mStream.Position;
                 mStream.Seek(0, SeekOrigin.Begin);
             }
+
             return mReader;
         }
 
         /// <summary>
         /// Begin the reading process.
         /// </summary>
-
         public BinaryReader BeginReading(int startOffset)
         {
             if (mWriting)
             {
                 mWriting = false;
-                mSize = (int)mStream.Position;
+                mSize = (int) mStream.Position;
             }
+
             mStream.Seek(startOffset, SeekOrigin.Begin);
             return mReader;
         }
@@ -323,11 +335,14 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Peek at the first byte at the specified offset.
         /// </summary>
-
         public int PeekByte(int offset)
         {
             long pos = mStream.Position;
-            if (offset < 0 || offset + 1 > pos) return -1;
+            if (offset < 0 || offset + 1 > pos)
+            {
+                return -1;
+            }
+
             mStream.Seek(offset, SeekOrigin.Begin);
             int val = mReader.ReadByte();
             mStream.Seek(pos, SeekOrigin.Begin);
@@ -337,11 +352,14 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Peek at the first integer at the specified offset.
         /// </summary>
-
         public int PeekInt(int offset)
         {
             long pos = mStream.Position;
-            if (offset < 0 || offset + 4 > pos) return -1;
+            if (offset < 0 || offset + 4 > pos)
+            {
+                return -1;
+            }
+
             mStream.Seek(offset, SeekOrigin.Begin);
             int val = mReader.ReadInt32();
             mStream.Seek(pos, SeekOrigin.Begin);
@@ -351,11 +369,14 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Peek-read the specified number of bytes.
         /// </summary>
-
         public byte[] PeekBytes(int offset, int length)
         {
             long pos = mStream.Position;
-            if (offset < 0 || offset + length > pos) return null;
+            if (offset < 0 || offset + length > pos)
+            {
+                return null;
+            }
+
             mStream.Seek(offset, SeekOrigin.Begin);
             byte[] bytes = mReader.ReadBytes(length);
             mStream.Seek(pos, SeekOrigin.Begin);
@@ -365,7 +386,6 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Begin writing a packet: the first 4 bytes indicate the size of the data that will follow.
         /// </summary>
-
         public BinaryWriter BeginPacket(byte packetID)
         {
             BinaryWriter writer = BeginWriting(false);
@@ -377,31 +397,28 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Begin writing a packet: the first 4 bytes indicate the size of the data that will follow.
         /// </summary>
-
         public BinaryWriter BeginPacket(Packet packet)
         {
             BinaryWriter writer = BeginWriting(false);
             writer.Write(0);
-            writer.Write((byte)packet);
+            writer.Write((byte) packet);
             return writer;
         }
 
         /// <summary>
         /// Begin writing a packet: the first 4 bytes indicate the size of the data that will follow.
         /// </summary>
-
         public BinaryWriter BeginPacket(Packet packet, int startOffset)
         {
             BinaryWriter writer = BeginWriting(startOffset);
             writer.Write(0);
-            writer.Write((byte)packet);
+            writer.Write((byte) packet);
             return writer;
         }
 
         /// <summary>
         /// Finish writing of the packet, updating (and returning) its size.
         /// </summary>
-
         public int EndPacket()
         {
             if (mWriting)
@@ -412,13 +429,13 @@ namespace LegendaryTools.Networking
                 mStream.Seek(0, SeekOrigin.Begin);
                 mWriting = false;
             }
+
             return mSize;
         }
 
         /// <summary>
         /// Finish writing of the packet, updating (and returning) its size.
         /// </summary>
-
         public int EndTcpPacketStartingAt(int startOffset)
         {
             if (mWriting)
@@ -429,13 +446,13 @@ namespace LegendaryTools.Networking
                 mStream.Seek(0, SeekOrigin.Begin);
                 mWriting = false;
             }
+
             return mSize;
         }
 
         /// <summary>
         /// Finish writing the packet and reposition the stream's position to the specified offset.
         /// </summary>
-
         public int EndTcpPacketWithOffset(int offset)
         {
             if (mWriting)
@@ -446,6 +463,7 @@ namespace LegendaryTools.Networking
                 mStream.Seek(offset, SeekOrigin.Begin);
                 mWriting = false;
             }
+
             return mSize;
         }
     }

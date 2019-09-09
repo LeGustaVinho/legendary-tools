@@ -2,13 +2,13 @@
 
 namespace LegendaryTools
 {
-    internal class PoolAssetObject<T> : PoolObject<T> where T : UnityEngine.Object
+    internal class PoolAssetObject<T> : PoolObject<T> where T : Object
     {
         private T Original;
 
         public PoolAssetObject(T original)
         {
-            this.Original = original;
+            Original = original;
             Instance = this;
         }
 
@@ -16,10 +16,13 @@ namespace LegendaryTools
         {
             T newObject = Create();
 
-            if(Pool.Verbose)
-                Debug.Log("Creating. " + newObject.name + " Type: " + typeof(T).ToString()+ " | T: " + TotalCount + "/A:" + ActiveCount + "/I:" + InactiveCount);
+            if (Pool.Verbose)
+            {
+                Debug.Log("Creating. " + newObject.name + " Type: " + typeof(T) + " | T: " + TotalCount + "/A:" +
+                          ActiveCount + "/I:" + InactiveCount);
+            }
 
-            if(newObject is GameObject)
+            if (newObject is GameObject)
             {
                 (newObject as GameObject).SetActive(true);
                 (newObject as GameObject).name = Original.name + " #" + Instances.IndexOf(newObject);
@@ -31,9 +34,12 @@ namespace LegendaryTools
         public T CreateUnityObject(Transform parent)
         {
             if (Original is GameObject)
-                return CreateUnityObject((Original as GameObject).transform.position, (Original as GameObject).transform.rotation, parent);
-            else
-                return CreateUnityObject();
+            {
+                return CreateUnityObject((Original as GameObject).transform.position,
+                    (Original as GameObject).transform.rotation, parent);
+            }
+
+            return CreateUnityObject();
         }
 
         public T CreateUnityObject(Vector3 position, Quaternion rotation)
@@ -51,7 +57,7 @@ namespace LegendaryTools
                 (newObject as GameObject).transform.position = position;
                 (newObject as GameObject).transform.rotation = rotation;
 
-                NotifyOnCreate((newObject as GameObject));
+                NotifyOnCreate(newObject as GameObject);
             }
 
             return newObject;
@@ -63,36 +69,45 @@ namespace LegendaryTools
             {
                 (instance as GameObject).SetActive(false);
                 (instance as GameObject).transform.SetParent(null);
-                NotifyOnRecycle((instance as GameObject));
+                NotifyOnRecycle(instance as GameObject);
             }
 
             base.Recycle(instance);
 
             if (Pool.Verbose)
-                Debug.Log("Recycle. Type: " + typeof(T).ToString() + " | T: " + TotalCount + "/A:" + ActiveCount + "/I:" + InactiveCount);
+            {
+                Debug.Log("Recycle. Type: " + typeof(T) + " | T: " + TotalCount + "/A:" + ActiveCount + "/I:" +
+                          InactiveCount);
+            }
         }
 
         protected override T NewObject()
         {
-            T obj = Object.Instantiate<T>(Original);
+            T obj = Object.Instantiate(Original);
 
             if (obj is GameObject)
+            {
                 NotifyOnConstruct(obj as GameObject);
+            }
 
             return obj;
         }
 
         public override void Clear()
         {
-            for(int i = 0; i < ActiveInstances.Count; i++)
+            for (int i = 0; i < ActiveInstances.Count; i++)
             {
                 if (ActiveInstances[i] != null)
                 {
                     if (ActiveInstances[i] is GameObject)
+                    {
                         Object.Destroy(ActiveInstances[i] as GameObject);
+                    }
                     else
 #if UNITY_EDITOR
+                    {
                         Object.DestroyImmediate(ActiveInstances[i]);
+                    }
 #else
                         Object.Destroy(ActiveInstances[i]);
 #endif
@@ -104,10 +119,14 @@ namespace LegendaryTools
                 if (ActiveInstances[i] != null)
                 {
                     if (InactiveInstances[i] is GameObject)
+                    {
                         Object.Destroy(InactiveInstances[i] as GameObject);
+                    }
                     else
 #if UNITY_EDITOR
+                    {
                         Object.DestroyImmediate(InactiveInstances[i]);
+                    }
 #else
                         Object.Destroy(ActiveInstances[i]);
 #endif
@@ -117,43 +136,54 @@ namespace LegendaryTools
             base.Clear();
         }
 
-        GameObject GetGameObject(T obj)
+        private GameObject GetGameObject(T obj)
         {
             if (obj is GameObject)
-                return (obj as GameObject);
-            else if (obj is Component)
+            {
+                return obj as GameObject;
+            }
+
+            if (obj is Component)
+            {
                 return (obj as Component).gameObject;
-            else
-                return null;
+            }
+
+            return null;
         }
 
-        void NotifyOnConstruct(GameObject obj)
+        private void NotifyOnConstruct(GameObject obj)
         {
             Component[] comps = obj.GetComponents<Component>();
-            for(int i = 0; i < comps.Length; i++)
+            for (int i = 0; i < comps.Length; i++)
             {
-                if(comps[i] is IPoolable)
+                if (comps[i] is IPoolable)
+                {
                     (comps[i] as IPoolable).OnConstruct();
+                }
             }
         }
 
-        void NotifyOnCreate(GameObject obj)
+        private void NotifyOnCreate(GameObject obj)
         {
             Component[] comps = obj.GetComponents<Component>();
             for (int i = 0; i < comps.Length; i++)
             {
                 if (comps[i] is IPoolable)
+                {
                     (comps[i] as IPoolable).OnCreate();
+                }
             }
         }
 
-        void NotifyOnRecycle(GameObject obj)
+        private void NotifyOnRecycle(GameObject obj)
         {
             Component[] comps = obj.GetComponents<Component>();
             for (int i = 0; i < comps.Length; i++)
             {
                 if (comps[i] is IPoolable)
+                {
                     (comps[i] as IPoolable).OnRecycle();
+                }
             }
         }
     }

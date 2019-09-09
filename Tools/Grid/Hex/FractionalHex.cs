@@ -10,17 +10,20 @@ namespace LegendaryTools.Grid
 
         public FractionalHex(float q, float r, float s)
         {
-            this.Q = q;
-            this.R = r;
-            this.S = s;
-            if (Math.Round(q + r + s) != 0) throw new ArgumentException("q + r + s must be 0");
+            Q = q;
+            R = r;
+            S = s;
+            if (Math.Round(q + r + s) != 0)
+            {
+                throw new ArgumentException("q + r + s must be 0");
+            }
         }
 
         public Hex Round()
         {
-            int qi = (int) (Math.Round(Q));
-            int ri = (int) (Math.Round(R));
-            int si = (int) (Math.Round(S));
+            int qi = (int) Math.Round(Q);
+            int ri = (int) Math.Round(R);
+            int si = (int) Math.Round(S);
             float q_diff = Math.Abs(qi - Q);
             float r_diff = Math.Abs(ri - R);
             float s_diff = Math.Abs(si - S);

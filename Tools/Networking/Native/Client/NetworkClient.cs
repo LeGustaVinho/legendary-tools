@@ -1,23 +1,19 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Net;
-using UnityEngine;
 
 namespace LegendaryTools.Networking
 {
     public class NetworkClient
     {
-        private UdpProtocol UdpProtocol = new UdpProtocol();
         private TcpProtocol TcpProtocol = new TcpProtocol();
+        private UdpProtocol UdpProtocol = new UdpProtocol();
         private UPnP upnp = new UPnP();
 
         public NetworkClient()
         {
-            this.TcpProtocol.OnClientPacketReceived += OnClientPacketReceived;
+            TcpProtocol.OnClientPacketReceived += OnClientPacketReceived;
 
-            this.UdpProtocol.OnPacketReceived += OnUnreliablePacketReceived;
+            UdpProtocol.OnPacketReceived += OnUnreliablePacketReceived;
         }
 
         /// <summary>
@@ -46,21 +42,22 @@ namespace LegendaryTools.Networking
 
             switch (qos)
             {
-                case QoSType.Reliable: TcpProtocol.SendTcpPacket(buffer); break;
+                case QoSType.Reliable:
+                    TcpProtocol.SendTcpPacket(buffer);
+                    break;
                 case QoSType.Unreliable:
-                    UdpProtocol.Send(buffer, NetworkUtility.ResolveEndPoint(TcpProtocol.IpAddress, UdpProtocol.listeningPort));
-                break;
+                    UdpProtocol.Send(buffer,
+                        NetworkUtility.ResolveEndPoint(TcpProtocol.IpAddress, UdpProtocol.listeningPort));
+                    break;
             }
         }
 
         protected virtual void OnUnreliablePacketReceived(Buffer buffer, IPEndPoint source)
         {
-
         }
 
         protected virtual void OnClientPacketReceived(Buffer buffer, IPEndPoint source)
         {
-
         }
     }
 }

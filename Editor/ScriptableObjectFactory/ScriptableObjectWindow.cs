@@ -9,9 +9,11 @@ namespace LegendaryTools.Editor
     internal class EndNameEdit : EndNameEditAction
     {
         #region implemented abstract members of EndNameEditAction
+
         public override void Action(int instanceId, string pathName, string resourceFile)
         {
-            AssetDatabase.CreateAsset(EditorUtility.InstanceIDToObject(instanceId), AssetDatabase.GenerateUniqueAssetPath(pathName));
+            AssetDatabase.CreateAsset(EditorUtility.InstanceIDToObject(instanceId),
+                AssetDatabase.GenerateUniqueAssetPath(pathName));
         }
 
         #endregion
@@ -22,14 +24,14 @@ namespace LegendaryTools.Editor
     /// </summary>
     public class ScriptableObjectWindow : EditorWindow
     {
-        private int selectedIndex;
         private static string[] names;
 
         private static Type[] types;
+        private int selectedIndex;
 
         private static Type[] Types
         {
-            get { return types; }
+            get => types;
             set
             {
                 types = value;
@@ -41,7 +43,8 @@ namespace LegendaryTools.Editor
         {
             Types = scriptableObjects;
 
-            var window = EditorWindow.GetWindow<ScriptableObjectWindow>(true, "Create a new ScriptableObject", true);
+            ScriptableObjectWindow window =
+                GetWindow<ScriptableObjectWindow>(true, "Create a new ScriptableObject", true);
             window.ShowPopup();
         }
 
@@ -52,10 +55,10 @@ namespace LegendaryTools.Editor
 
             if (GUILayout.Button("Create"))
             {
-                var asset = UnityEngine.ScriptableObject.CreateInstance(types[selectedIndex]);
+                ScriptableObject asset = CreateInstance(types[selectedIndex]);
                 ProjectWindowUtil.StartNameEditingIfProjectWindowExists(
                     asset.GetInstanceID(),
-                    UnityEngine.ScriptableObject.CreateInstance<EndNameEdit>(),
+                    CreateInstance<EndNameEdit>(),
                     string.Format("{0}.asset", names[selectedIndex]),
                     AssetPreview.GetMiniThumbnail(asset),
                     null);

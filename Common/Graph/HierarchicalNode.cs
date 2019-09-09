@@ -1,36 +1,32 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace LegendaryTools.Graph
 {
-
-    
     public class HierarchicalNode<G, N>
         where G : HierarchicalGraph<G, N>
         where N : HierarchicalNode<G, N>
     {
+        protected HierarchicalNode()
+        {
+            ID = Guid.NewGuid();
+        }
+
+        public HierarchicalNode(G owner) : this()
+        {
+            Owner = owner;
+        }
+
         public Guid ID { get; protected set; }
         public G SubGraph { get; protected internal set; }
 
         public G Owner { get; protected internal set; }
 
         public bool HasSubGraph => SubGraph != null;
-        
+
         public N[] NodeHierarchy => GetHierarchyFromNode();
 
-        protected HierarchicalNode()
-        {
-            ID = Guid.NewGuid();
-        }
-        
-        public HierarchicalNode(G owner) : this()
-        {
-            Owner = owner;
-        }
-
-        public void AddSubGraph (G subGraph)
+        public void AddSubGraph(G subGraph)
         {
             SubGraph = subGraph;
             SubGraph.ParentNode = this as N;
@@ -38,12 +34,15 @@ namespace LegendaryTools.Graph
 
         public void RemoveSubGraph()
         {
-            if (SubGraph == null) return;
-            
+            if (SubGraph == null)
+            {
+                return;
+            }
+
             SubGraph.ParentNode = null;
             SubGraph = null;
         }
-        
+
         public N[] GetHierarchyFromNode(N highLevelNode = null)
         {
             List<N> path = new List<N>();
@@ -51,10 +50,14 @@ namespace LegendaryTools.Graph
             for (N parentNode = Owner.ParentNode; parentNode != null; parentNode = parentNode.Owner?.ParentNode)
             {
                 if (highLevelNode != null && parentNode == highLevelNode)
+                {
                     break;
-                
+                }
+
                 if (parentNode != null)
+                {
                     path.Add(parentNode);
+                }
             }
 
             path.Reverse();
@@ -65,10 +68,10 @@ namespace LegendaryTools.Graph
         {
             return ID.GetHashCode();
         }
-        
+
         public override bool Equals(object other)
         {
-            if (!(other.GetType().IsSameOrSubclass(typeof(HierarchicalNode<G, N>))))
+            if (!other.GetType().IsSameOrSubclass(typeof(HierarchicalNode<G, N>)))
             {
                 return false;
             }

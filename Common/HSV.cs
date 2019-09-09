@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace LegendaryTools
 {
@@ -35,10 +33,12 @@ namespace LegendaryTools
         public override bool Equals(object obj)
         {
             if (GetType() != obj.GetType())
+            {
                 return false;
+            }
 
-            HSV hsv = (HSV)obj;
-            return (hue == hsv.hue) && (saturation == hsv.saturation) && (value == hsv.value);
+            HSV hsv = (HSV) obj;
+            return hue == hsv.hue && saturation == hsv.saturation && value == hsv.value;
         }
 
         public override int GetHashCode()
@@ -48,7 +48,7 @@ namespace LegendaryTools
 
         public static bool operator ==(HSV x, HSV y)
         {
-            return (x.hue == y.hue) && (x.saturation == y.saturation) && (x.value == y.value);
+            return x.hue == y.hue && x.saturation == y.saturation && x.value == y.value;
         }
 
         public static bool operator !=(HSV x, HSV y)

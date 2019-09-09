@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using UnityEngine;
 
 namespace LegendaryTools.Networking
 {
@@ -13,43 +10,39 @@ namespace LegendaryTools.Networking
         /// There is no guarantee of delivery or ordering.
         /// </summary>
         Unreliable,
+
         /// <summary>
         /// Each message is guaranteed to be delivered and in order.
         /// </summary>
-        Reliable, 
+        Reliable
     }
 
     public class NetworkServer
     {
-        public int listenPort
-        {
-            get { return TcpProtocol.IsListening ? TcpProtocol.Port : 0; }
-        }
-
-        public List<TcpProtocol> connections
-        {
-            get { return new List<TcpProtocol>(TcpProtocol.clientsDictionary.Values); }
-        }
+        private TcpProtocol TcpProtocol = new TcpProtocol();
 
         private UdpProtocol UdpProtocol = new UdpProtocol();
-        private TcpProtocol TcpProtocol = new TcpProtocol();
         private UPnP upnp = new UPnP();
 
         public NetworkServer()
         {
-            this.TcpProtocol.OnListenerPacketReceived += OnListenerPacketReceived;
-            this.TcpProtocol.OnClientPacketReceived += OnClientPacketReceived;
-            this.TcpProtocol.OnClientConnect += OnClientConnect;
+            TcpProtocol.OnListenerPacketReceived += OnListenerPacketReceived;
+            TcpProtocol.OnClientPacketReceived += OnClientPacketReceived;
+            TcpProtocol.OnClientConnect += OnClientConnect;
 
-            this.UdpProtocol.OnPacketReceived += OnUnreliablePacketReceived;
+            UdpProtocol.OnPacketReceived += OnUnreliablePacketReceived;
         }
+
+        public int listenPort => TcpProtocol.IsListening ? TcpProtocol.Port : 0;
+
+        public List<TcpProtocol> connections => new List<TcpProtocol>(TcpProtocol.clientsDictionary.Values);
 
         /// <summary>
         /// This starts the server listening for connections on the specified port.
         /// </summary>
         public void Listen(int tcpPort, int udpPort, bool multiThreaded = true)
         {
-            if(tcpPort == udpPort)
+            if (tcpPort == udpPort)
             {
                 return;
             }
@@ -94,33 +87,32 @@ namespace LegendaryTools.Networking
             {
                 switch (qos)
                 {
-                    case QoSType.Reliable: TcpProtocol.SendToClient(id, buffer); break;
-                    case QoSType.Unreliable: UdpProtocol.Send(buffer, 
-                        NetworkUtility.ResolveEndPoint(TcpProtocol.clientsDictionary[id].IpAddress, 
-                        UdpProtocol.listeningPort));
-                    break;
+                    case QoSType.Reliable:
+                        TcpProtocol.SendToClient(id, buffer);
+                        break;
+                    case QoSType.Unreliable:
+                        UdpProtocol.Send(buffer,
+                            NetworkUtility.ResolveEndPoint(TcpProtocol.clientsDictionary[id].IpAddress,
+                                UdpProtocol.listeningPort));
+                        break;
                 }
             }
         }
 
         protected virtual void OnClientConnect(int id, TcpProtocol client)
         {
-            
         }
 
         protected virtual void OnClientPacketReceived(Buffer buffer, IPEndPoint source)
         {
-            
         }
 
         protected virtual void OnListenerPacketReceived(Buffer buffer, TcpProtocol source)
         {
-            
         }
 
         protected virtual void OnUnreliablePacketReceived(Buffer buffer, IPEndPoint source)
         {
-            
         }
     }
 }

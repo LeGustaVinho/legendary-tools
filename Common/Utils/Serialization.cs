@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
+
 #if ODIN_INSPECTOR
 using Sirenix.Serialization;
 using System.Text;
@@ -12,9 +13,9 @@ namespace LegendaryTools
     {
         public static string SaveXML<T>(T data)
         {
-            using (var writer = new StringWriter())
+            using (StringWriter writer = new StringWriter())
             {
-                var serializer = new XmlSerializer(typeof(T));
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
                 serializer.Serialize(writer, data);
                 return writer.ToString();
             }
@@ -22,16 +23,16 @@ namespace LegendaryTools
 
         public static T LoadXML<T>(string data)
         {
-            using (var reader = new StringReader(data))
+            using (StringReader reader = new StringReader(data))
             {
-                var serializer = new XmlSerializer(typeof(T));
-                return (T)serializer.Deserialize(reader);
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
+                return (T) serializer.Deserialize(reader);
             }
         }
 
         public static byte[] SaveBinary<T>(T data)
         {
-            using (var stream = new MemoryStream())
+            using (MemoryStream stream = new MemoryStream())
             {
                 BinaryFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(stream, data);
@@ -41,10 +42,10 @@ namespace LegendaryTools
 
         public static T LoadBinary<T>(byte[] data)
         {
-            using (var stream = new MemoryStream(data))
+            using (MemoryStream stream = new MemoryStream(data))
             {
                 BinaryFormatter formatter = new BinaryFormatter();
-                return (T)formatter.Deserialize(stream);
+                return (T) formatter.Deserialize(stream);
             }
         }
 
@@ -52,7 +53,7 @@ namespace LegendaryTools
 
         public static void SaveBinaryToFile<T>(T data, string fileName)
         {
-            File.WriteAllBytes(fileName, SaveBinary<T>(data));
+            File.WriteAllBytes(fileName, SaveBinary(data));
         }
 
         public static T LoadBinaryFromFile<T>(string fileName)
@@ -62,9 +63,9 @@ namespace LegendaryTools
 
         public static void SaveXMLToFile<T>(T data, string FileName)
         {
-            using (var writer = new StreamWriter(FileName))
+            using (StreamWriter writer = new StreamWriter(FileName))
             {
-                var serializer = new XmlSerializer(typeof(T));
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
                 serializer.Serialize(writer, data);
                 writer.Flush();
             }
@@ -72,17 +73,16 @@ namespace LegendaryTools
 
         public static T LoadXMLFromFile<T>(string FileName)
         {
-            using (var stream = File.OpenRead(FileName))
+            using (FileStream stream = File.OpenRead(FileName))
             {
-                var serializer = new XmlSerializer(typeof(T));
-                return (T)serializer.Deserialize(stream);
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
+                return (T) serializer.Deserialize(stream);
             }
         }
 
 #endif
 
 #if ODIN_INSPECTOR
-
         public static byte[] SaveOdinBinary<T>(T data)
         {
             return SerializationUtility.SerializeValue<T>(data, DataFormat.Binary);

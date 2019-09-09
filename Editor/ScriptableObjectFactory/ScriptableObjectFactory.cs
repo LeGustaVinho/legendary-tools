@@ -14,12 +14,12 @@ namespace LegendaryTools.Editor
         [MenuItem("ScriptableObject/Create")]
         public static void CreateScriptableObject()
         {
-            var assembly = GetAssembly();
+            Assembly assembly = GetAssembly();
 
             // Get all classes derived from ScriptableObject
-            var allScriptableObjects = (from t in assembly.GetTypes()
-                                        where t.IsSubclassOf(typeof(UnityEngine.ScriptableObject)) && !t.IsAbstract
-                                        select t).ToArray();
+            Type[] allScriptableObjects = (from t in assembly.GetTypes()
+                where t.IsSubclassOf(typeof(ScriptableObject)) && !t.IsAbstract
+                select t).ToArray();
 
             // Show the selection window.
             ScriptableObjectWindow.Init(allScriptableObjects);

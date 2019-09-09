@@ -1,10 +1,10 @@
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LegendaryTools.UI
 {
-    [RequireComponent(typeof(Text))]
-    [AddComponentMenu("UI/Localize Text")]
+    [RequireComponent(typeof(Text)), AddComponentMenu("UI/Localize Text")]
     public class TextLocalize : BaseLocalize
     {
         private Text Text;
@@ -18,17 +18,28 @@ namespace LegendaryTools.UI
 
         public override void Localize(string value)
         {
-            if (string.IsNullOrEmpty(key)) return;
-            
-            if (Text == null)
-                Text = GetComponent<Text>();
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
 
-            if (Text == null) return;
+            if (Text == null)
+            {
+                Text = GetComponent<Text>();
+            }
+
+            if (Text == null)
+            {
+                return;
+            }
+
             Text.text = value;
-                    
+
 #if UNITY_EDITOR
-            if(!Application.isPlaying)
-                UnityEditor.EditorUtility.SetDirty(this);
+            if (!Application.isPlaying)
+            {
+                EditorUtility.SetDirty(this);
+            }
 #endif
         }
     }

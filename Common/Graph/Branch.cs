@@ -8,39 +8,29 @@ namespace LegendaryTools.Graph
         where G : Tree<G, N>
         where N : Branch<G, N>
     {
-        public virtual N[] Neighbours
-        {
-            get
-            {
-                List<N> neighbours = new List<N>();
-                neighbours.AddRange(childs);
-                neighbours.Add(Parent);
-                return neighbours.ToArray();
-            }
-        }
-
-        public int Count => childs.Count;
-
-        public bool IsReadOnly { get; }
+        private readonly List<N> childs = new List<N>();
 
         public N Parent { get; protected internal set; }
-        
+
         public N[] BranchHierachy
         {
             get
             {
                 List<N> path = new List<N>();
-                for(N parent = Parent; parent != null; parent = parent.Parent)
+                for (N parent = Parent; parent != null; parent = parent.Parent)
                 {
-                    if(parent != null)
+                    if (parent != null)
+                    {
                         path.Add(parent);
+                    }
                 }
+
                 path.Reverse();
                 return path.ToArray();
             }
         }
-        
-        private readonly List<N> childs = new List<N>();
+
+        public bool IsReadOnly { get; }
 
         public void Add(N newBranch)
         {
@@ -69,15 +59,10 @@ namespace LegendaryTools.Graph
         {
             return childs.Remove(newBranch);
         }
-        
+
         public bool Contains(N newBranch)
         {
             return childs.Contains(newBranch);
-        }
-
-        public void SetParent(N newParent)
-        {
-            Parent = newParent;
         }
 
         public IEnumerator<N> GetEnumerator()
@@ -88,6 +73,24 @@ namespace LegendaryTools.Graph
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public virtual N[] Neighbours
+        {
+            get
+            {
+                List<N> neighbours = new List<N>();
+                neighbours.AddRange(childs);
+                neighbours.Add(Parent);
+                return neighbours.ToArray();
+            }
+        }
+
+        public int Count => childs.Count;
+
+        public void SetParent(N newParent)
+        {
+            Parent = newParent;
         }
     }
 }

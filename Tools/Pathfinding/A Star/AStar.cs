@@ -11,34 +11,6 @@ namespace LegendaryTools.Pathfinding
 
     public class AStar<T>
     {
-        private class AStarNode : IPriorityQueueNode
-        {
-            public float Priority
-            {
-                get => Score;
-                set => Score = value;
-            }
-
-            public readonly T Location;
-
-            public float Score;
-
-            public AStarNode(T location)
-            {
-                Location = location;
-            }
-
-            public override int GetHashCode()
-            {
-                return Location.GetHashCode();
-            }
-
-            public void Clean()
-            {
-                Score = 0;
-            }
-        }
-
         private static readonly Dictionary<T, AStarNode> cachedNodes = new Dictionary<T, AStarNode>();
         private readonly IAStar<T> map;
 
@@ -113,9 +85,39 @@ namespace LegendaryTools.Pathfinding
         private static AStarNode getFromCache(T node)
         {
             if (!cachedNodes.ContainsKey(node))
+            {
                 cachedNodes.Add(node, new AStarNode(node));
+            }
 
             return cachedNodes[node];
+        }
+
+        private class AStarNode : IPriorityQueueNode
+        {
+            public readonly T Location;
+
+            public float Score;
+
+            public AStarNode(T location)
+            {
+                Location = location;
+            }
+
+            public float Priority
+            {
+                get => Score;
+                set => Score = value;
+            }
+
+            public override int GetHashCode()
+            {
+                return Location.GetHashCode();
+            }
+
+            public void Clean()
+            {
+                Score = 0;
+            }
         }
     }
 }
