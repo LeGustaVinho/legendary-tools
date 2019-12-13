@@ -4,26 +4,70 @@ using UnityEngine;
 
 namespace LegendaryTools
 {
-    public class PoolObject<T>
+    public interface IPoolable
+    {
+        void OnConstruct();
+
+        void OnCreate();
+
+        void OnRecycle();
+    }
+
+    public abstract class PoolObject
+    {
+        private static readonly List<PoolObject> AllPools = new List<PoolObject>();
+
+        protected PoolObject()
+        {
+            AllPools.Add(this);
+        }
+        
+        public abstract System.Object Create();
+
+        public abstract void Recycle(System.Object instance);
+        
+        public abstract void Clear();
+
+        public static void ClearAllPools()
+        {
+            for (int i = 0; i < AllPools.Count; i++)
+            {
+                AllPools[i].Clear();
+            }
+            
+            AllPools.Clear();
+        }
+    }
+    
+    public class PoolObject<T> : PoolObject
+        where T : class, new()
     {
         public static PoolObject<T> Instance;
-        protected List<T> ActiveInstances = new List<T>();
-        protected List<T> InactiveInstances = new List<T>();
+        protected readonly List<T> ActiveInstances = new List<T>();
+        protected readonly List<T> InactiveInstances = new List<T>();
 
-        protected List<T> Instances = new List<T>();
+        public List<T> AllInstances
+        {
+            get
+            {
+                List<T> allInstances = new List<T>(ActiveInstances.Count + InactiveInstances.Count);
+                allInstances.AddRange(ActiveInstances);
+                allInstances.AddRange(InactiveInstances);
+                return allInstances;
+            }
+        }
 
-        public PoolObject()
+        public PoolObject() : base()
         {
             Instance = this;
         }
 
-        public int ActiveCount => ActiveInstances.Count;
+        public override System.Object Create()
+        {
+            return CreateAs();
+        }
 
-        public int InactiveCount => InactiveInstances.Count;
-
-        public int TotalCount => ActiveCount + InactiveCount;
-
-        public virtual T Create()
+        public virtual T CreateAs()
         {
             T newObject = default;
 
@@ -35,33 +79,30 @@ namespace LegendaryTools
             else
             {
                 newObject = NewObject();
-                Instances.Add(newObject);
 
-                if (newObject is IPoolable)
+                if (newObject is IPoolable poolable)
                 {
-                    (newObject as IPoolable).OnConstruct();
+                    poolable.OnConstruct();
                 }
             }
 
             ActiveInstances.Add(newObject);
 
-            if (newObject is IPoolable)
+            if (newObject is IPoolable poolable1)
             {
-                (newObject as IPoolable).OnCreate();
+                poolable1.OnCreate();
             }
 
             return newObject;
         }
 
+        public override void Recycle(object instance)
+        {
+            Recycle(instance as T);
+        }
+        
         public virtual void Recycle(T instance)
         {
-            //Debug.Log("instance.type = " + instance.GetType().ToString());
-
-            //for (int i = 0; i < ActiveInstances.Count; i++)
-            //{
-            //    Debug.Log("ActiveInstance ["+i + "].type = " + ActiveInstances[i].GetType().ToString());
-            //}
-
             if (instance != null)
             {
                 if (ActiveInstances.Contains(instance))
@@ -69,9 +110,9 @@ namespace LegendaryTools
                     ActiveInstances.Remove(instance);
                     InactiveInstances.Add(instance);
 
-                    if (instance is IPoolable)
+                    if (instance is IPoolable poolable)
                     {
-                        (instance as IPoolable).OnRecycle();
+                        poolable.OnRecycle();
                     }
                 }
                 else
@@ -90,28 +131,15 @@ namespace LegendaryTools
             return Activator.CreateInstance<T>();
         }
 
-        public virtual void Clear()
+        public override void Clear()
         {
             InactiveInstances.Clear();
             ActiveInstances.Clear();
         }
 
-        public static T CreateObject()
+        public static void RecycleInstance(T instance)
         {
-            if (Instance == null)
-            {
-                Instance = new PoolObject<T>();
-            }
-
-            return Instance.Create();
-        }
-
-        public static void RecycleObject(T instance)
-        {
-            if (Instance != null)
-            {
-                Instance.Recycle(instance);
-            }
+            Instance?.Recycle(instance);
         }
     }
 }

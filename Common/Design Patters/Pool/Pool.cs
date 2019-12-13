@@ -1,284 +1,200 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace LegendaryTools
 {
-    public static class Pool
+    public class Pool
     {
-        public static bool Verbose;
-        public static List<Type> PoolTypes = new List<Type>();
+        private static readonly Dictionary<int, PoolGameObject> GameObjectPools =
+            new Dictionary<int, PoolGameObject>();
 
-        private static Dictionary<Object, PoolAssetObject<GameObject>> GameObjectPools =
-            new Dictionary<Object, PoolAssetObject<GameObject>>();
-
-        public static T Instantiate<T>(Object original) where T : Object
+        public static T Instantiate<T>(T prefab)
+            where T : UnityEngine.Object
         {
-            if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
+            if (prefab == null)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return GameObject
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject() as T;
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject() as T;
+                Debug.LogError("[Pool:Instantiate()] -> Prefab cant be null.");
+                return null;
             }
 
-            if (typeof(T).IsSameOrSubclass(typeof(Component))
-            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return T Component
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject()
-                        .GetComponent<T>();
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject().GetComponent<T>();
+                PoolGameObject pool = CreateOrGetPool((prefab as Component).gameObject);
+                return pool.CreateAs().GetComponent<T>();
             }
 
-            return NonGameObjectInstantiate<T>(original);
+            if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(prefab as GameObject);
+                return pool.Create() as T;
+            }
+
+            return null;
         }
 
-        public static T Instantiate<T>(Object original, Transform parent) where T : Object
+        public static T Instantiate<T>(T prefab, Transform parent)
+            where T : UnityEngine.Object
         {
-            if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
+            if (prefab == null)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return GameObject
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(parent) as T;
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent) as T;
+                Debug.LogError("[Pool:Instantiate()] -> Prefab cant be null.");
+                return null;
             }
 
-            if (typeof(T).IsSameOrSubclass(typeof(Component))
-            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return T Component
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform).CreateUnityObject(parent)
-                        .GetComponent<T>();
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(parent)
-                    .GetComponent<T>();
+                PoolGameObject pool = CreateOrGetPool((prefab as Component).gameObject);
+                return pool.Create(parent).GetComponent<T>();
             }
 
-            return NonGameObjectInstantiate<T>(original);
+            if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(prefab as GameObject);
+                return pool.Create(parent) as T;
+            }
+
+            return null;
         }
 
-        public static T Instantiate<T>(Object original, Vector3 position, Quaternion rotation) where T : Object
+        public static T Instantiate<T>(T prefab, Vector3 position, Quaternion rotation)
+            where T : UnityEngine.Object
         {
-            if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
+            if (prefab == null)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return GameObject
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform)
-                        .CreateUnityObject(position, rotation) as T;
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform)
-                    .CreateUnityObject(position, rotation) as T;
+                Debug.LogError("[Pool:Instantiate()] -> Prefab cant be null.");
+                return null;
             }
 
-            if (typeof(T).IsSameOrSubclass(typeof(Component))
-            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return T Component
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform)
-                        .CreateUnityObject(position, rotation).GetComponent<T>();
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform).CreateUnityObject(position, rotation)
-                    .GetComponent<T>();
+                PoolGameObject pool = CreateOrGetPool((prefab as Component).gameObject);
+                return pool.Create(position, rotation).GetComponent<T>();
             }
 
-            return NonGameObjectInstantiate<T>(original);
+            if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(prefab as GameObject);
+                return pool.Create(position, rotation) as T;
+            }
+
+            return null;
         }
 
-        public static T Instantiate<T>(Object original, Vector3 position, Quaternion rotation, Transform parent)
-            where T : Object
+        public static T Instantiate<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent)
+            where T : UnityEngine.Object
         {
-            if (typeof(T).IsSameOrSubclass(typeof(GameObject))) //T is GameObject
+            if (prefab == null)
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return GameObject
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform)
-                        .CreateUnityObject(position, rotation, parent) as T;
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform)
-                    .CreateUnityObject(position, rotation, parent) as T;
+                Debug.LogError("[Pool:Instantiate()] -> Prefab cant be null.");
+                return null;
             }
 
-            if (typeof(T).IsSameOrSubclass(typeof(Component))
-            ) //T is component (like MonoBehaviour, Transform and all others Unity Components)
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                if (original.GetType().IsSameOrSubclass(typeof(GameObject))
-                ) //original is GameObject and return T Component
-                {
-                    return GetGameObjectPool<T>((original as GameObject).transform)
-                        .CreateUnityObject(position, rotation, parent).GetComponent<T>();
-                }
-
-                return GetGameObjectPool<T>((original as Component).transform)
-                    .CreateUnityObject(position, rotation, parent).GetComponent<T>();
+                PoolGameObject pool = CreateOrGetPool((prefab as Component).gameObject);
+                return pool.Create(position, rotation, parent).GetComponent<T>();
             }
 
-            return NonGameObjectInstantiate<T>(original);
+            if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(prefab as GameObject);
+                return pool.Create(position, rotation, parent) as T;
+            }
+
+            return null;
         }
 
-        private static PoolAssetObject<GameObject> GetGameObjectPool<T>(Component original) where T : Object
+        public static void Destroy<T>(T instance)
+            where T : UnityEngine.Object
         {
-            if (!GameObjectPools.ContainsKey(original))
+            if (instance == null)
             {
-                GameObjectPools.Add(original, new PoolAssetObject<GameObject>(original.gameObject));
-
-                if (!PoolTypes.Contains(typeof(GameObject)))
-                {
-                    PoolTypes.Add(typeof(GameObject));
-                }
+                Debug.LogError("[Pool:Instantiate()] -> Instance cant be null.");
+                return;
             }
 
-            return GameObjectPools[original];
-        }
-
-        private static T NonGameObjectInstantiate<T>(Object original) where T : Object
-        {
-            PoolAssetObject<T> poolAssetObject = PoolAssetObject<T>.Instance as PoolAssetObject<T>;
-
-            if (PoolAssetObject<T>.Instance == null)
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                poolAssetObject = new PoolAssetObject<T>(original as T);
+                GameObject go = (instance as Component)?.gameObject;
+                CreateOrGetPool(go).Recycle(go);
             }
-
-            if (!PoolTypes.Contains(typeof(T)))
+            else if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
             {
-                PoolTypes.Add(typeof(T));
-            }
-
-            return poolAssetObject.CreateUnityObject();
-        }
-
-        public static void Destroy<T>(T instance) where T : Object
-        {
-            if (instance.GetType().IsSameOrSubclass(typeof(Component))
-            ) //includes MonoBehaviour, Transform and all others components
-            {
-                PoolAssetObject<GameObject> poolAssetObject =
-                    PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
-
-                if (poolAssetObject != null)
-                {
-                    poolAssetObject.RecycleUnityObject((instance as Component).gameObject);
-                }
-            }
-            else if (instance.GetType().IsSameOrSubclass(typeof(GameObject)))
-            {
-                PoolAssetObject<GameObject> poolAssetObject =
-                    PoolAssetObject<GameObject>.Instance as PoolAssetObject<GameObject>;
-
-                if (poolAssetObject != null)
-                {
-                    poolAssetObject.RecycleUnityObject(instance as GameObject);
-                }
-            }
-            else //includes Texture, AudioClip, etc
-            {
-                PoolAssetObject<T> poolAssetObject = PoolAssetObject<T>.Instance as PoolAssetObject<T>;
-
-                if (poolAssetObject != null)
-                {
-                    poolAssetObject.RecycleUnityObject(instance);
-                }
+                GameObject go = instance as GameObject;
+                CreateOrGetPool(go).Recycle(go);
             }
         }
 
-        public static T Create<T>()
+        public static T Construct<T>(T instance)
+            where T : class, new()
         {
-            return PoolObject<T>.CreateObject();
+            return CreateOrGetPool<T>().CreateAs();
+        }
+        
+        public static void Dispose<T>(T instance)
+            where T : class, new()
+        {
+            CreateOrGetPool<T>().Recycle(instance);
         }
 
-        public static void Recycle<T>(T instance)
+        public static void ClearPool<T>(T instance)
+            where T : class, new()
         {
-            PoolObject<T>.RecycleObject(instance);
-        }
-
-        public static void Clear<T>()
-        {
-            if (PoolObject<T>.Instance != null)
+            if (instance == null)
             {
-                PoolObject<T>.Instance.Clear();
+                Debug.LogError("[Pool:ClearPool()] -> Instance cant be null.");
+                return;
             }
-        }
 
-        public static int GetTotalInstances<T>()
-        {
-            if (typeof(T).IsSubclassOf(typeof(Component)))
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
             {
-                if (PoolAssetObject<GameObject>.Instance != null)
-                {
-                    return PoolAssetObject<GameObject>.Instance.TotalCount;
-                }
+                PoolGameObject pool = CreateOrGetPool((instance as Component).gameObject);
+                pool.Clear();
+            }
+            else if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(instance as GameObject);
+                pool.Clear();
             }
             else
             {
-                if (PoolObject<T>.Instance != null)
-                {
-                    return PoolObject<T>.Instance.TotalCount;
-                }
+                CreateOrGetPool<T>().Clear();
+            }
+        }
+        
+        public static void ClearAll()
+        {
+            PoolObject.ClearAllPools();
+        }
+        
+        private static PoolGameObject CreateOrGetPool(GameObject gameObject)
+        {
+            if (gameObject == null)
+            {
+                Debug.LogError("[Pool:CreateOrGetPool()] -> GameObject cant be null.");
+                return null;
             }
 
-            return -1;
+            int objectId = gameObject.GetHashCode();
+            GameObjectPoolReference poolReferenceComp = gameObject.GetComponent<GameObjectPoolReference>();
+            if (poolReferenceComp != null)
+            {
+                objectId = poolReferenceComp.PrefabID;
+            }
+            
+            if (GameObjectPools.TryGetValue(objectId, out PoolGameObject gameObjPool))
+            {
+                return gameObjPool;
+            }
+
+            GameObjectPools.Add(objectId, new PoolGameObject(gameObject));
+            return GameObjectPools[objectId];
         }
 
-        public static int GetActiveInstances<T>()
+        private static PoolObject<T> CreateOrGetPool<T>()
+            where T : class, new()
         {
-            if (typeof(T).IsSubclassOf(typeof(Component)))
-            {
-                if (PoolAssetObject<GameObject>.Instance != null)
-                {
-                    return PoolAssetObject<GameObject>.Instance.ActiveCount;
-                }
-            }
-            else
-            {
-                if (PoolObject<T>.Instance != null)
-                {
-                    return PoolObject<T>.Instance.ActiveCount;
-                }
-            }
-
-            return -1;
-        }
-
-        public static int GetInactiveInstances<T>()
-        {
-            if (typeof(T).IsSubclassOf(typeof(Component)))
-            {
-                if (PoolAssetObject<GameObject>.Instance != null)
-                {
-                    return PoolAssetObject<GameObject>.Instance.InactiveCount;
-                }
-            }
-            else
-            {
-                if (PoolObject<T>.Instance != null)
-                {
-                    return PoolObject<T>.Instance.InactiveCount;
-                }
-            }
-
-            return -1;
+            return PoolObject<T>.Instance ?? new PoolObject<T>();
         }
     }
 }
