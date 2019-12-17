@@ -12,7 +12,7 @@ namespace LegendaryTools.Actor
     {
         protected static readonly Dictionary<Type, List<Actor>> allActorsByType = new Dictionary<Type, List<Actor>>();
         protected ActorMonoBehaviour actorBehaviour;
-        protected Object prefab;
+        protected readonly GameObject prefab;
 
         public Actor()
         {
@@ -20,7 +20,7 @@ namespace LegendaryTools.Actor
             Init(newGO);
         }
 
-        public Actor(Object prefab = null, string name = "")
+        public Actor(GameObject prefab = null, string name = "")
         {
             this.prefab = prefab;
             GameObject newGO = CreateGameObject(name, prefab);
@@ -86,6 +86,41 @@ namespace LegendaryTools.Actor
             return null;
         }
 
+        public bool Possess(ActorMonoBehaviour target)
+        {
+            if (target.Actor != null)
+            {
+                return false;
+            }
+
+            Eject();
+
+            actorBehaviour = target;
+            actorBehaviour.BindActor(this);
+            RegisterActorBehaviourEvents();
+
+            return true;
+        }
+
+        public void Eject()
+        {
+            if (actorBehaviour != null)
+            {
+                UnRegisterActorBehaviourEvents();
+                actorBehaviour.UnBindActor();
+                actorBehaviour = null;
+            }
+        }
+
+        public void RegenerateBody()
+        {
+            if (actorBehaviour == null)
+            {
+                GameObject newGO = CreateGameObject(prefab: prefab);
+                Init(newGO);
+            }
+        }
+        
         protected void RegisterActorBehaviourEvents()
         {
             actorBehaviour.WhenAwake += Awake;
@@ -170,14 +205,14 @@ namespace LegendaryTools.Actor
 
         protected abstract void UnRegisterActor();
 
-        protected virtual GameObject CreateGameObject(string name = "", Object prefab = null)
+        protected virtual GameObject CreateGameObject(string name = "", GameObject prefab = null)
         {
             if (prefab == null)
             {
                 return new GameObject(name);
             }
 
-            return Object.Instantiate(prefab) as GameObject;
+            return Object.Instantiate(prefab);
         }
 
         protected virtual ActorMonoBehaviour AddActorBehaviour(GameObject gameObject)
@@ -185,32 +220,15 @@ namespace LegendaryTools.Actor
             return gameObject.AddComponent<ActorMonoBehaviour>();
         }
 
-        public bool Possess(ActorMonoBehaviour target)
+        protected virtual void DestroyGameObject(ActorMonoBehaviour actorBehaviour)
         {
-            if (target.Actor != null)
-            {
-                return false;
-            }
-
-            Eject();
-
-            actorBehaviour = target;
-            actorBehaviour.BindActor(this);
-            RegisterActorBehaviourEvents();
-
-            return true;
+#if UNITY_EDITOR
+            Object.DestroyImmediate(actorBehaviour.GameObject);
+#else
+            Object.Destroy(actorBehaviour.GameObject);
+#endif
         }
-
-        public void Eject()
-        {
-            if (actorBehaviour != null)
-            {
-                UnRegisterActorBehaviourEvents();
-                actorBehaviour.UnBindActor();
-                actorBehaviour = null;
-            }
-        }
-
+        
         #region MonoBehaviour calls
 
         protected virtual void Awake()
@@ -853,16 +871,11 @@ namespace LegendaryTools.Actor
             }
         }
         
-        
         public virtual void Dispose()
         {
             if (actorBehaviour != null)
             {
-#if UNITY_EDITOR
-                Object.DestroyImmediate(actorBehaviour.GameObject);
-#else
-                Object.Destroy(actorBehaviour.GameObject);
-#endif
+                DestroyGameObject(actorBehaviour);
             }
             else
             {
@@ -876,11 +889,11 @@ namespace LegendaryTools.Actor
     [Serializable]
     public class Actor<TClass> : Actor
     {
-        public Actor()
+        public Actor() : base()
         {
         }
 
-        public Actor(Object prefab = null, string name = "") : base(prefab, name)
+        public Actor(GameObject prefab = null, string name = "") : base(prefab, name)
         {
         }
 
@@ -915,16 +928,16 @@ namespace LegendaryTools.Actor
     public class Actor<TClass, TBehaviour> : Actor<TClass>
         where TBehaviour : ActorMonoBehaviour
     {
-        public TBehaviour BaseBehaviour { get; private set; }
+        public TBehaviour BodyBehaviour { get; private set; }
 
-        public Actor()
+        public Actor() : base()
         {
-            BaseBehaviour = actorBehaviour as TBehaviour;
+            BodyBehaviour = actorBehaviour as TBehaviour;
         }
 
-        public Actor(Object prefab = null, string name = "") : base(prefab, name)
+        public Actor(GameObject prefab = null, string name = "") : base(prefab, name)
         {
-            BaseBehaviour = actorBehaviour as TBehaviour;
+            BodyBehaviour = actorBehaviour as TBehaviour;
         }
 
         protected override ActorMonoBehaviour AddActorBehaviour(GameObject gameObject)
