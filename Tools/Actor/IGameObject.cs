@@ -6,17 +6,17 @@ namespace LegendaryTools.Actor
 {
     public interface IGameObject : IUnityObject
     {
+        string Name { get; set; }
+        
         string Tag { get; set; }
         
-        bool activeInHierarchy { get; set; }
+        bool ActiveInHierarchy { get; }
         
-        bool activeSelf { get; set; }
+        bool ActiveSelf { get; }
         
-        int layer { get; set; }
+        int Layer { get; set; }
         
-        Scene scene { get; set; }
-        
-        string tag { get; set; }
+        Scene Scene { get; }
 
         void SetActive(bool value);
 

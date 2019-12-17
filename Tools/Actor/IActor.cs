@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LegendaryTools.Actor
 {
-    public interface IActor : IMonoBehaviour, ITransform, IGameObject, IDisposable
+    public interface IActor : IMonoBehaviour, IRectTransform, IGameObject, IDisposable
     {
         Transform Transform { get; }
         RectTransform RectTransform { get; }
