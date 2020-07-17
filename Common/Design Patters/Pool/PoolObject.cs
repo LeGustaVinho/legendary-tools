@@ -15,6 +15,8 @@ namespace LegendaryTools
 
     public abstract class PoolObject
     {
+        public bool CanAutoGenerateInstances { protected set; get; }
+        
         private static readonly List<PoolObject> AllPools = new List<PoolObject>();
 
         protected PoolObject()
@@ -27,6 +29,7 @@ namespace LegendaryTools
         public abstract void Recycle(System.Object instance);
         
         public abstract void Clear();
+        public abstract void AddInstance(System.Object instance);
 
         public static void ClearAllPools()
         {
@@ -40,7 +43,7 @@ namespace LegendaryTools
     }
     
     public class PoolObject<T> : PoolObject
-        where T : class, new()
+        where T : class
     {
         public static PoolObject<T> Instance;
         protected readonly List<T> ActiveInstances = new List<T>();
@@ -60,6 +63,7 @@ namespace LegendaryTools
         public PoolObject() : base()
         {
             Instance = this;
+            CanAutoGenerateInstances = typeof(T).HasDefaultConstructor();
         }
 
         public override System.Object Create()
@@ -78,11 +82,14 @@ namespace LegendaryTools
             }
             else
             {
-                newObject = NewObject();
-
-                if (newObject is IPoolable poolable)
+                if (CanAutoGenerateInstances)
                 {
-                    poolable.OnConstruct();
+                    newObject = NewObject();
+
+                    if (newObject is IPoolable poolable)
+                    {
+                        poolable.OnConstruct();
+                    }
                 }
             }
 
@@ -135,6 +142,24 @@ namespace LegendaryTools
         {
             InactiveInstances.Clear();
             ActiveInstances.Clear();
+        }
+
+        public void FillInstances(List<T> instances)
+        {
+            for (int i = 0; i < instances.Count; i++)
+            {
+                AddInstance(instances[i] as T);
+            }
+        }
+
+        public override void AddInstance(System.Object instance)
+        {
+            AddInstance(instance as T);
+        }
+        
+        public void AddInstance(T instance)
+        {
+            InactiveInstances.Add(instance);
         }
 
         public static void RecycleInstance(T instance)

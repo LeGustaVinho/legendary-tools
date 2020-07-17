@@ -126,19 +126,53 @@ namespace LegendaryTools
         }
 
         public static T Construct<T>(T instance)
-            where T : class, new()
+            where T : class
         {
             return CreateOrGetPool<T>().CreateAs();
         }
         
         public static void Dispose<T>(T instance)
-            where T : class, new()
+            where T : class
         {
             CreateOrGetPool<T>().Recycle(instance);
         }
 
+        public static void FillInstances<T>(List<T> instances)
+            where T : class
+        {
+            for (int i = 0; i < instances.Count; i++)
+            {
+                AddInstance(instances[i]);
+            }
+        }
+        
+        public static void AddInstance<T>(T instance)
+            where T : class
+        {
+            if (instance == null)
+            {
+                Debug.LogError("[Pool:AddInstance()] -> Instance cant be null.");
+                return;
+            }
+
+            if (typeof(T).IsSameOrSubclass(typeof(Component)))
+            {
+                PoolGameObject pool = CreateOrGetPool((instance as Component).gameObject);
+                pool.AddInstance(instance);
+            }
+            else if (typeof(T).IsSameOrSubclass(typeof(GameObject)))
+            {
+                PoolGameObject pool = CreateOrGetPool(instance as GameObject);
+                pool.AddInstance(instance);
+            }
+            else
+            {
+                CreateOrGetPool<T>().AddInstance(instance);
+            }
+        }
+        
         public static void ClearPool<T>(T instance)
-            where T : class, new()
+            where T : class
         {
             if (instance == null)
             {
@@ -192,7 +226,7 @@ namespace LegendaryTools
         }
 
         private static PoolObject<T> CreateOrGetPool<T>()
-            where T : class, new()
+            where T : class
         {
             return PoolObject<T>.Instance ?? new PoolObject<T>();
         }
